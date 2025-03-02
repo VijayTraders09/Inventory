@@ -18,9 +18,17 @@ const firebaseConfig = {
   measurementId: "G-N3KNHRJ2RC"
 };
 
+let analytics;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
 export { db, collection, addDoc, doc, updateDoc };
