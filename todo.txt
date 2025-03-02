@@ -1,0 +1,3 @@
+config for all collection categories = "Categories" 
+config for routes 
+config for api call 
