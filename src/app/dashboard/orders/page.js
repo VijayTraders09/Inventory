@@ -26,7 +26,7 @@ export default function Orders() {
 
   const fetchSale = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "sale"));
+      const querySnapshot = await getDocs(collection(db, "sales"));
       const sales = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
