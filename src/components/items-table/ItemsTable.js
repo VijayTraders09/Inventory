@@ -30,7 +30,7 @@ export default function ItemsTable({ list, setList, hideRemove }) {
     ? [
         {
           headerName: "idx",
-          field: "idx",
+          field: "_id",
           sortable: true,
           filter: true,
           cellRenderer: CustomCell,
@@ -38,18 +38,18 @@ export default function ItemsTable({ list, setList, hideRemove }) {
         },
         {
           headerName: "Category Name",
-          field: "category",
+          field: "categoryId",
           sortable: true,
           filter: true,
-          cellRenderer: CustomCell,
+          cellRenderer: ({value})=> <p className="text-black dark:white">{value.categoryName}</p>,
           flex: 2,
         },
         {
           headerName: "Product Name",
-          field: "product",
+          field: "productId",
           sortable: true,
           filter: true,
-          cellRenderer: CustomCell,
+          cellRenderer: ({value})=> <p className="text-black dark:white">{value.productName}</p>,
           flex: 2,
         },
         {
@@ -72,7 +72,7 @@ export default function ItemsTable({ list, setList, hideRemove }) {
         },
         {
           headerName: "Category Name",
-          field: "category",
+          field: "categoryName",
           sortable: true,
           filter: true,
           cellRenderer: CustomCell,
@@ -80,7 +80,7 @@ export default function ItemsTable({ list, setList, hideRemove }) {
         },
         {
           headerName: "Product Name",
-          field: "product",
+          field: "productName",
           sortable: true,
           filter: true,
           cellRenderer: CustomCell,
@@ -105,7 +105,7 @@ export default function ItemsTable({ list, setList, hideRemove }) {
       ];
 
   return (
-    <div className={`dark:text-red text-blue p-4 rounded-lg w-full h-60 `}>
+    <div className={`dark:text-red text-blue p-4 rounded-lg w-full h-60  `}>
       <AgGridReact columnDefs={columnDefs} rowData={list} pagination={true} />
     </div>
   );

@@ -27,7 +27,7 @@ const Products = () => {
         setOpen={setOpen}
         fetchData={fetchData}
         setFetchData={setFetchData}
-        categoryId={params.product}
+        categoryId={params?.categoryId}
       />
     </div>
   );

@@ -7,6 +7,9 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProductsByCategory } from "@/store/slices/productSlice";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -14,32 +17,18 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ProductTable({
   setSelectedProduct,
   setOpen,
-  setFetchData,
-  fetchData,
-  categoryId
+  categoryId,
 }) {
-  const [Products, setProducts] = useState([]);
-  const fetchProducts = async () => {
-    try {
 
-      const q = query(collection(db, "products"), where("categoryId", "==", categoryId));
-      const querySnapshot = await getDocs(q);
-      const products = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setProducts(products);
-      setFetchData(false);
-    } catch (error) {
-      console.error("Error fetching products: ", error);
-      setProducts([]);
-    }
-  };
+  const dispatch = useDispatch();
+  const { products, loading, error, fetched } = useSelector(
+    (state) => state.products
+  );
 
   useEffect(() => {
-    if (fetchData) fetchProducts();
+    if (!fetched) dispatch(fetchProductsByCategory(categoryId));
     return () => {};
-  }, [fetchData]);
+  }, [fetched]);
 
   const CustomCell = ({ value }) => (
     <p className="text-black dark:white">{value}</p>
@@ -61,19 +50,19 @@ export default function ProductTable({
   const columnDefs = [
     {
       headerName: "id",
-      field: "id",
+      field: "_id",
       sortable: true,
       filter: true,
       cellRenderer: CustomCell,
-      flex:1
+      flex: 1,
     },
     {
       headerName: "Product Name",
-      field: "product",
+      field: "productName",
       sortable: true,
       filter: true,
       cellRenderer: CustomCell,
-      flex:1
+      flex: 1,
     },
     {
       headerName: "Action",
@@ -81,26 +70,15 @@ export default function ProductTable({
       sortable: true,
       filter: true,
       cellRenderer: EditButtonCell,
-      flex:1
+      flex: 1,
     },
   ];
-
-  console.log(Products);
-
-  const rowData = useMemo(
-    () => [
-      { id: 1, name: "Alice", age: 25 },
-      { id: 2, name: "Bob", age: 30 },
-      { id: 3, name: "Charlie", age: 35 },
-    ],
-    []
-  );
 
   return (
     <div className={`dark:text-red text-blue p-4 rounded-lg w-full h-96 `}>
       <AgGridReact
         columnDefs={columnDefs}
-        rowData={Products}
+        rowData={products}
         pagination={true}
       />
     </div>

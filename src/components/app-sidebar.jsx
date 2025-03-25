@@ -52,8 +52,13 @@ const items1 = [
     icon: User,
   },
   {
-    title: "Orders",
-    url: "/dashboard/orders",
+    title: "Sells",
+    url: "/dashboard/sells",
+    icon: Boxes,
+  },
+  {
+    title: "Purchase",
+    url: "/dashboard/purchases",
     icon: Boxes,
   },
   {
@@ -78,7 +83,7 @@ const items2 = [
 
 export function AppSidebar({ logo }) {
   const pathname = usePathname();
-  console.log(pathname);
+  console.log(pathname)
   return (
     <SidebarInset className="shadow-2xl w-[250px] border-2 border-red-600 m-0">
       <Sidebar>
@@ -96,7 +101,7 @@ export function AppSidebar({ logo }) {
                   <SidebarMenuItem key={item.title} className="my-2">
                     <SidebarMenuButton
                       asChild
-                      className="hover:text-primaryBlue hover:dark:text-primaryBlue"
+                      className={`hover:text-primaryBlue hover:dark:text-primaryBlue ${pathname.includes(item.url)?'bg-primaryBlue text-white':'bg-white'}`}
                     >
                       <a
                         href={item.url}
@@ -114,7 +119,7 @@ export function AppSidebar({ logo }) {
                   <SidebarMenuItem key={item.title} className="my-2">
                     <SidebarMenuButton
                       asChild
-                      className="hover:text-primaryBlue hover:dark:text-primaryBlue"
+                      className={`hover:text-primaryBlue hover:dark:text-primaryBlue`}
                     >
                       <Link
                         href={pathname + item.url}

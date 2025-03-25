@@ -1,38 +1,24 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/firebase/config";
-import { Button } from "../ui/button";
+import { AgGridReact } from "ag-grid-react";
+import axios from "axios";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchCategories } from "@/store/slices/categorySlice";
+import { useEffect, useState } from "react";
+import { Button } from "../ui/button";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export default function CategoryTable({
-  setSelectedCategory,
+export default function GoddownTable({
+  setSelectedGoddown,
   setOpen,
   setFetchData,
   fetchData,
+  goddowns
 }) {
   const pathname = usePathname();
-
-  const dispatch = useDispatch();
-
-  const { categories, loading, error, fetched } = useSelector(
-    (state) => state.categories
-  );
-
-  useEffect(() => {
-    if (!fetched) dispatch(fetchCategories());
-    return () => {};
-  }, [fetched]);
 
   const CustomCell = ({ value }) => (
     <p className="text-black dark:white">{value}</p>
@@ -42,7 +28,7 @@ export default function CategoryTable({
     return (
       <Button
         onClick={() => {
-          setSelectedCategory(data);
+          setSelectedGoddown(data);
           setOpen(true);
         }}
       >
@@ -65,8 +51,8 @@ export default function CategoryTable({
       flex:1
     },
     {
-      headerName: "Category Name",
-      field: "categoryName",
+      headerName: "Goddown Name",
+      field: "goddownName",
       sortable: true,
       filter: true,
       cellRenderer: CustomCell,
@@ -80,21 +66,12 @@ export default function CategoryTable({
       cellRenderer: EditButtonCell,
       flex:1
     },
-    {
-      headerName: "Products",
-      field: "products",
-      sortable: true,
-      filter: true,
-      cellRenderer: ProductButtonCell,
-      flex:1
-    },
   ];
-console.log(fetchData)
   return (
     <div className={`dark:text-red text-blue p-4 rounded-lg w-full h-96 `}>
       <AgGridReact
         columnDefs={columnDefs}
-        rowData={categories}
+        rowData={goddowns}
         pagination={true}
       />
     </div>
