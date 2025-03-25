@@ -11,8 +11,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { addDoc, collection, db, doc, updateDoc } from "@/firebase/config";
+import { fetchProductsByCategory } from "@/store/slices/productSlice";
+import axios from "axios";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 
 export function AddProduct({
@@ -20,51 +23,34 @@ export function AddProduct({
   open,
   setOpen,
   setSelectedProduct,
-  setFetchData
+  setFetchData,
 }) {
+  const dispatch = useDispatch();
   const params = useParams();
   const [product, setCategory] = useState({
-    id: selectedProduct?.id || "",
-    product: selectedProduct?.product || "",
-    categoryId:params.product
+    id: selectedProduct?._id || "",
+    productName: selectedProduct?.productName || "",
+    categoryId: params.categoryId,
   });
 
   useEffect(() => {
     if (open) {
       setCategory({
-        id: selectedProduct?.id || "",
-        product: selectedProduct?.product || "",
-        categoryId:params.product
+        id: selectedProduct?._id || "",
+        productName: selectedProduct?.productName || "",
+        categoryId: params.categoryId,
       });
     }
   }, [open]);
 
-  console.log(selectedProduct);
-
   const handleSave = async () => {
     try {
-      if (product.id) {
-        // Edit existing product
-        const categoryRef = doc(db, "products", product.id);
-        console.log(
-          await updateDoc(categoryRef, { product: product.product,updatedAt: new Date(),  })
-        );
-        console.log("Products updated!");
-        toast.success("Products Updated successfully!");
-      } else {
-        // Add new product
-        const docRef = await addDoc(collection(db, "products"), {
-          product: product.product,
-          categoryId:product.categoryId,
-          createdAt: new Date(), 
-        });
-        console.log("Products added with ID:", docRef.id);
-        toast.success("Products Added successfully!");
-      }
-      // Close the dialog
+      const response = await axios.post("/api/products", product);
+      if (selectedProduct?._id) toast.success("Product Updated successfully!");
+      else toast.success("Product Added successfully!");
       setCategory({ id: "", name: "" }); // Reset input
       setSelectedProduct({});
-      setFetchData(true)
+      dispatch(fetchProductsByCategory(params.categoryId));
       setOpen(false);
     } catch (error) {
       console.error("Error saving product:", error);
@@ -77,9 +63,11 @@ export function AddProduct({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div className="w-full flex justify-end">
-      <DialogTrigger asChild>
-        <Button variant="outline" className='bg-buttonBg text-white'>Add Product</Button>
-      </DialogTrigger>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="bg-buttonBg text-white">
+            Add Product
+          </Button>
+        </DialogTrigger>
       </div>
       <DialogContent className="sm:max-w-[555px]">
         <DialogHeader>
@@ -95,9 +83,12 @@ export function AddProduct({
             <Input
               id="name"
               className="col-span-3"
-              value={product.product}
+              value={product.productName}
               onChange={(e) => {
-                setCategory((prev) => ({ ...prev, product: e.target.value }));
+                setCategory((prev) => ({
+                  ...prev,
+                  productName: e.target.value,
+                }));
               }}
             />
           </div>

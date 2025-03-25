@@ -10,46 +10,51 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { fetchCategories } from "@/store/slices/categorySlice";
+import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 
-export function AddCategory({
-  selectedCategory,
+export function AddGoddown({
+  selectedGoddown,
   open,
   setOpen,
-  setSelectedCategory,
+  setSelectedGoddown,
   setFetchData,
 }) {
-  const dispatch = useDispatch()
-  const [category, setCategory] = useState({
-    id: selectedCategory?._id || "",
-    categoryName: selectedCategory?.categoryName || "",
+  const [goddown, setCategory] = useState({
+    id: selectedGoddown?._id || "",
+    goddownName: selectedGoddown?.goddownName || "",
   });
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (open) {
       setCategory({
-        id: selectedCategory?._id || "",
-        categoryName: selectedCategory?.categoryName || "",
+        id: selectedGoddown?._id || "",
+        goddownName: selectedGoddown?.goddownName || "",
       });
     }
-  }, [open, selectedCategory]);
+  }, [open, selectedGoddown]);
 
   const handleSave = async () => {
     try {
-      const response = await axios.post("/api/category", category);
-      if (selectedCategory?._id)
-        toast.success("Category Updated successfully!");
-      else toast.success("Category Added successfully!");
-      setCategory({ id: "", name: "" }); // Reset input
-      setSelectedCategory({});
-      dispatch(fetchCategories())
-      setOpen(false);
+      const response = await axios.post("/api/goddown", goddown);
+      console.clear();
+      console.log(response);
+      if (response?.data.success) {
+        toast.success(response.data.message);
+        setCategory({ id: "", name: "" }); // Reset input
+        setSelectedGoddown({});
+        dispatch(fetchGoddowns());
+        setOpen(false);
+      } else {
+        toast.success(response.data.message);
+      }
     } catch (error) {
-      console.error("Error saving category:", error);
+      console.error("Error saving goddown:", error);
       toast.error(error.message.toString());
     } finally {
       setOpen(false);
@@ -61,27 +66,30 @@ export function AddCategory({
       <div className="w-full flex justify-end">
         <DialogTrigger asChild>
           <Button variant="outline" className="bg-buttonBg text-white">
-            Add Category
+            Add Goddown
           </Button>
         </DialogTrigger>
       </div>
       <DialogContent className="sm:max-w-[555px]">
         <DialogHeader>
           <DialogTitle>
-            {selectedCategory?._id ? "Update " : "New "} Category
+            {selectedGoddown?._id ? "Update " : "New "} Goddown
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-5 items-center gap-2 ">
             <p htmlFor="name" className=" font-medium text-md col-span-2">
-              Category Name :
+              Goddown Name :
             </p>
             <Input
               id="name"
               className="col-span-3"
-              value={category.categoryName}
+              value={goddown.goddownName}
               onChange={(e) => {
-                setCategory((prev) => ({ ...prev, categoryName: e.target.value }));
+                setCategory((prev) => ({
+                  ...prev,
+                  goddownName: e.target.value,
+                }));
               }}
             />
           </div>
