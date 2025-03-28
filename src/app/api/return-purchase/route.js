@@ -1,7 +1,7 @@
 import connect from "@/lib/db";
 import Goddown from "@/models/goddown";
 import Product from "@/models/product";
-import Purchases from "@/models/purchases";
+import PurchaseReturn from "@/models/purchaseReturn";
 import Seller from "@/models/seller";
 import Category from "@/models/category";
 import { NextResponse } from "next/server";
@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     await connect(); // Ensure the connection is established
-    const sales = await Purchases.find({})
+    const purchasereturn = await PurchaseReturn.find({})
       .populate("sellerId") // Populate seller details
       .populate("godownId") // Populate godown details
       .populate({
@@ -20,7 +20,7 @@ export async function GET() {
       });
     return NextResponse.json(
       {
-        data: sales,
+        data: purchasereturn,
         success: true,
         message: "purchased  Fetched",
       },
@@ -46,6 +46,7 @@ export async function POST(req) {
       id,
       modeOfTransport,
       remark,
+      purchaseInvoice,
       godownId,
     } = await req.json();
 
@@ -61,11 +62,9 @@ export async function POST(req) {
       });
     }
 
-    console.log("godownId",godownId)
-
     if (id) {
       // Handle Update: Update the sale
-      await Purchases.findByIdAndUpdate(id, { invoiceNumber, sellerId, items });
+      await PurchaseReturn.findByIdAndUpdate(id, { invoiceNumber, sellerId, items });
 
       // Loop through the items to update the products and godown
       for (let item of items) {
@@ -106,14 +105,14 @@ export async function POST(req) {
       }
 
       return NextResponse.json(
-        { message: "Purchase Updated", success: true },
+        { message: "Purchase Return Updated", success: true },
         { status: 200 }
       );
     }
 
     // Handle Create: Create a new sale
-    const newSale = new Purchases({ invoiceNumber, sellerId, items,godownId,modeOfTransport });
-    await newSale.save();
+    const newReturnPurchases = new PurchaseReturn({ invoiceNumber, sellerId, items,godownId,modeOfTransport ,purchaseInvoice,remark});
+    await newReturnPurchases.save();
 
     // Loop through the items to update the products and godown
     for (let item of items) {
@@ -126,7 +125,7 @@ export async function POST(req) {
           (entry) => entry.godownId.toString() === godown._id.toString()
         );
         if (quantityIndex !== -1) {
-          product.quantity[quantityIndex].quantity += item.quantity;
+          product.quantity[quantityIndex].quantity -= item.quantity;
         } else {
           product.quantity.push({
             godownId: godown._id,
@@ -142,7 +141,7 @@ export async function POST(req) {
           (entry) => entry.productId.toString() === item.productId.toString()
         );
         if (godownStock !== -1) {
-          godown.stock[godownStock].quantity += item.quantity;
+          godown.stock[godownStock].quantity -= item.quantity;
         } else {
           godown.stock.push({
             productId: item.productId,
@@ -154,7 +153,7 @@ export async function POST(req) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Purchase Created", data: newSale },
+      { success: true, message: "Purchase Return Created", data: newReturnPurchases },
       { status: 201 }
     );
   } catch (error) {

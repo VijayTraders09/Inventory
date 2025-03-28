@@ -9,6 +9,7 @@ const CustomInput = ({
   placeholder,
   type,
   multiline,
+  disabled,
 }) => {
   return multiline ? (
     <Textarea
@@ -16,10 +17,12 @@ const CustomInput = ({
       type={type}
       placeholder={placeholder}
       onChange={onChange}
+      disabled={disabled}
       className={"border-0 focus-visible:ring-0 " + className}
     />
   ) : (
     <Input
+      disabled={disabled}
       value={value}
       type={type}
       placeholder={placeholder}

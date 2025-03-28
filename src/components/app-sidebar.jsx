@@ -62,6 +62,16 @@ const items1 = [
     icon: Boxes,
   },
   {
+    title: "Return Purchase",
+    url: "/dashboard/return-purchases",
+    icon: Boxes,
+  },
+  {
+    title: "Sale Purchase",
+    url: "/dashboard/return-sale",
+    icon: Boxes,
+  },
+  {
     title: "Manage Store",
     url: "#",
     icon: Store,

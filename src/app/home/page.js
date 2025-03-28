@@ -29,12 +29,16 @@ export default function Home() {
           <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightSkyblue">
             <h3 className=" font-bold text-xl">Transfer</h3>
           </div>
+          <Link href={"/add-return-sale"}>
           <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightOrange">
             <h3 className=" font-bold text-xl">Sale Return</h3>
           </div>
+          </Link>
+          <Link href={"/add-return-purchase"}>
           <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightGreen">
             <h3 className=" font-bold text-xl">Purchase Return</h3>
           </div>
+          </Link>
           <Link href={"/goddown"}>
             <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightSkyblue">
               <h3 className=" font-bold text-xl">Goddown</h3>
