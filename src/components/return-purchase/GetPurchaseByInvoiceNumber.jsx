@@ -21,6 +21,7 @@ export function GetPurchaseByInvoiceNumber({
   setOpen,
   selectedInvoiceNumber,
   setPurchase,
+  hideAddButton
 }) {
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
