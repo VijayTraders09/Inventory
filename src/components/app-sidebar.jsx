@@ -67,7 +67,7 @@ const items1 = [
     icon: Boxes,
   },
   {
-    title: "Sale Purchase",
+    title: "Return Sale",
     url: "/dashboard/return-sale",
     icon: Boxes,
   },

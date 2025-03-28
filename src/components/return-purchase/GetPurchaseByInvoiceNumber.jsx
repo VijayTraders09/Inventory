@@ -29,7 +29,7 @@ export function GetPurchaseByInvoiceNumber({
     if (open) {
       setInvoiceNumber(selectedInvoiceNumber);
     }
-  }, [open, selectedSeller]);
+  }, [open]);
 
   const handleSave = async () => {
     try {
