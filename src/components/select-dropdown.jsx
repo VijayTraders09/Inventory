@@ -30,7 +30,7 @@ import {
 
 function SelectDropdown({
   list = [],
-  label,
+  disabled,
   placeholder,
   className,
   value = 0,
@@ -46,7 +46,7 @@ function SelectDropdown({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          // role="combobox"
+          disabled={disabled}
           aria-expanded={open}
           className={className + "flex justify-between"}
         >

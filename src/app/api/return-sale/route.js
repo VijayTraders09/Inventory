@@ -1,16 +1,16 @@
 import connect from "@/lib/db";
 import Goddown from "@/models/goddown";
 import Product from "@/models/product";
-import Purchases from "@/models/purchases";
-import Seller from "@/models/seller";
+import SaleReturn from "@/models/saleReturn";
+import Buyer from "@/models/buyer";
 import Category from "@/models/category";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
     await connect(); // Ensure the connection is established
-    const sales = await Purchases.find({})
-      .populate("sellerId") // Populate seller details
+    const sales = await SaleReturn.find({})
+      .populate("buyerId") // Populate seller details
       .populate("godownId") // Populate godown details
       .populate({
         path: "items.productId", // Populate product details inside items array
@@ -41,17 +41,18 @@ export async function POST(req) {
     await connect();
     const {
       invoiceNumber,
-      sellerId,
+      buyerId,
       items,
       id,
       modeOfTransport,
       remark,
+      saleInvoice,
       godownId,
     } = await req.json();
 
     // Validate the input
     if (
-      (!invoiceNumber || !sellerId || !items || items.length === 0,
+      (!invoiceNumber || !buyerId || !items || items.length === 0,
       !modeOfTransport,
       !godownId)
     ) {
@@ -61,11 +62,9 @@ export async function POST(req) {
       });
     }
 
-    console.log("godownId",godownId)
-
     if (id) {
       // Handle Update: Update the sale
-      await Purchases.findByIdAndUpdate(id, { invoiceNumber, sellerId, items });
+      await SaleReturn.findByIdAndUpdate(id, { invoiceNumber, buyerId, items });
 
       // Loop through the items to update the products and godown
       for (let item of items) {
@@ -106,13 +105,13 @@ export async function POST(req) {
       }
 
       return NextResponse.json(
-        { message: "Purchase Updated", success: true },
+        { message: "Purchase Return Updated", success: true },
         { status: 200 }
       );
     }
 
     // Handle Create: Create a new sale
-    const newSale = new Purchases({ invoiceNumber, sellerId, items,godownId,modeOfTransport });
+    const newSale = new SaleReturn({ invoiceNumber, buyerId, items,godownId,modeOfTransport ,saleInvoice,remark});
     await newSale.save();
 
     // Loop through the items to update the products and godown
@@ -126,7 +125,7 @@ export async function POST(req) {
           (entry) => entry.godownId.toString() === godown._id.toString()
         );
         if (quantityIndex !== -1) {
-          product.quantity[quantityIndex].quantity += item.quantity;
+          product.quantity[quantityIndex].quantity -= item.quantity;
         } else {
           product.quantity.push({
             godownId: godown._id,
@@ -142,7 +141,7 @@ export async function POST(req) {
           (entry) => entry.productId.toString() === item.productId.toString()
         );
         if (godownStock !== -1) {
-          godown.stock[godownStock].quantity += item.quantity;
+          godown.stock[godownStock].quantity -= item.quantity;
         } else {
           godown.stock.push({
             productId: item.productId,
@@ -154,7 +153,7 @@ export async function POST(req) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Purchase Created", data: newSale },
+      { success: true, message: "Purchase Return Created", data: newSale },
       { status: 201 }
     );
   } catch (error) {

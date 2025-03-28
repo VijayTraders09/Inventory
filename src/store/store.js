@@ -8,6 +8,8 @@ import categoryReducer from "./slices/categorySlice";
 import sellerReducer from "./slices/sellerSlice";
 import sellReducer from "./slices/sellSlice";
 import purchaseReducer from "./slices/purchaseSlice";
+import returnSaleReducer from "./slices/returnSaleSlice";
+import returnPurchaseReducer from "./slices/returnPurchaseSlice";
 
 export const store = configureStore({
   reducer: {
@@ -19,5 +21,7 @@ export const store = configureStore({
     sellers: sellerReducer,
     sells: sellReducer,
     purchases: purchaseReducer,
+    returnPurchases: returnPurchaseReducer,
+    returnSales: returnSaleReducer,
   },
 });
