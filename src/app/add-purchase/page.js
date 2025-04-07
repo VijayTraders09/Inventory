@@ -17,14 +17,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchSeller } from "@/store/slices/sellerSlice";
 
-const initialState ={
+const initialState = {
   seller: 0,
-  goddown: 0,
   items: [],
   modeOfTransport: 0,
   invoice: "",
   remark: "",
-}
+};
 export default function Home() {
   const transport = [
     {
@@ -55,6 +54,22 @@ export default function Home() {
   };
 
   const addItemsToList = () => {
+    if (!item.categoryId) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!item.productId) {
+      toast.error("Product is required");
+      return;
+    }
+    if (!item?.godownId) {
+      toast.error("Goddown is required");
+      return;
+    }
+    if (!item?.quantity) {
+      toast.error("quantity is required");
+      return;
+    }
     setItems((prev) => [
       ...prev,
       { ...item, idx: prev.length + 1, id: Math.round(Math.random() * 1000) },
@@ -68,11 +83,7 @@ export default function Home() {
 
   const handleSave = async () => {
     if (!purchase.seller) {
-      toast.error("Seller is required");
-      return;
-    }
-    if (!purchase.goddown) {
-      toast.error("Goddown is required");
+      toast.error("Purchaser is required");
       return;
     }
     if (!items?.length) {
@@ -83,24 +94,21 @@ export default function Home() {
       toast.error("mode of transport is required");
       return;
     }
-    if (!purchase?.invoice) {
-      toast.error("Invoice is required");
-      return;
-    }
+    
     try {
       const response = await axios.post("/api/purchase", {
         invoiceNumber: purchase.invoice,
         sellerId: purchase.seller, // ID of the seller
         items: items,
-        godownId: purchase.goddown, // ID of the godown where the product is stored
+        // godownId: purchase.goddown, // ID of the godown where the product is stored
         modeOfTransport: purchase.modeOfTransport, // Mode of transport
         remark: purchase.remark, // Additional remarks
       });
-      if(response.data.success){
-        setPurchase(initialState)
-        setItems([])
+      if (response.data.success) {
+        setPurchase(initialState);
+        setItems([]);
         toast.success(response.data.message);
-      }else{
+      } else {
         toast.error(response.data.message);
       }
     } catch (error) {
@@ -137,8 +145,7 @@ export default function Home() {
     dispatch(fetchProductsByCategory(""));
   }, []);
 
-  // console.clear();
-  console.log(sellers);
+  console.log(items)
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">
@@ -150,26 +157,28 @@ export default function Home() {
       <div className="w-[calc(100vw-14rem)] ">
         <h1 className="text-start text-2xl font-medium mt-4">VJ Traders</h1>
       </div>
-      <div className="w-[calc(100vw-20rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
+      <div className="w-[calc(100vw-16rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
         <div className="w-full flex items-center justify-between pb-2 border-b-2 border-b-grey">
-          <h3 className="text-xl font-medium">Your Requirements</h3>
+          <h3 className="text-xl font-medium">
+            Your Requirements ( Purchase )
+          </h3>
           <Button
             className=" bg-button-gradient"
             onClick={() => setOpenSeller(true)}
           >
-            Add New Seller
+            Add New Purchaser
           </Button>
         </div>
         <div className="w-full mt-4 space-y-6 h-[30rem] overflow-auto">
           <div className="flex items-center justify-between w-full">
             <div>
-              <p>Seller Name</p>
+              <p>Purchaser Name</p>
               <SelectDropdown
                 list={sellers.map((seller) => ({
                   id: seller._id,
                   name: seller.sellerName,
                 }))}
-                label={"Select Seller"}
+                label={"Select Purchaser"}
                 value={purchase.seller}
                 onChange={(value) =>
                   setPurchase((prev) => ({ ...prev, seller: value }))
@@ -181,27 +190,24 @@ export default function Home() {
               />
             </div>
             <div>
-              <p>Select Goddown</p>
-              <SelectDropdown
-                list={goddowns.map((goddown) => ({
-                  id: goddown._id,
-                  name: goddown.goddownName,
-                }))}
-                label={"Select Goddown"}
-                value={purchase.goddown}
+              <p>Invoice Number</p>
+              <CustomInput
+                value={purchase.invoice}
+                type={"number"}
+                placeholder={"Invoice"}
                 onChange={(value) =>
-                  setPurchase((prev) => ({ ...prev, goddown: value }))
+                  setPurchase((prev) => ({
+                    ...prev,
+                    invoice: value.target.value,
+                  }))
                 }
-                placeholder={"Select"}
-                className={
-                  "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
-                }
+                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>
           <div className="flex items-end justify-between w-full gap-2">
             <div className="flex-3 w-full">
-              <p>Category Name</p>
+              <p>Select Category</p>
               <SelectDropdown
                 list={categories.map((category) => ({
                   id: category._id,
@@ -220,12 +226,12 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
             <div className="flex-3 w-full">
-              <p>Product Name</p>
+              <p>Select Product</p>
               <SelectDropdown
                 list={products.map((product) => ({
                   id: product._id,
@@ -243,7 +249,30 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                }
+              />
+            </div>
+            <div className="flex-3 w-full">
+              <p>Select Goddown</p>
+              <SelectDropdown
+                list={goddowns.map((goddown) => ({
+                  id: goddown._id,
+                  name: goddown.goddownName,
+                }))}
+                label={"Select Goddown"}
+                value={item.godownId}
+                onChange={(value) => {
+                  setItem((prev) => ({
+                    ...prev,
+                    godownId: value,
+                    goddownName: goddowns.find((prod) => prod._id == value)
+                      ?.goddownName,
+                  }));
+                }}
+                placeholder={"Select"}
+                className={
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
@@ -256,7 +285,7 @@ export default function Home() {
                 }
                 type={"number"}
                 placeholder={"Quantity"}
-                className={"w-full border-0 mt-2  bg-white rounded-md "}
+                className={"w-[14rem] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
             <Button
@@ -292,21 +321,10 @@ export default function Home() {
                 }
               />
             </div>
-            <div>
-              <p>Invoice Number</p>
-              <CustomInput
-                value={purchase.invoice}
-                type={"number"}
-                placeholder={"Invoice"}
-                onChange={(value) =>
-                  setPurchase((prev) => ({ ...prev, invoice: value.target.value }))
-                }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
+            
           </div>
           <div className="flex items-center justify-between w-full">
-            <div>
+            <div className="w-full">
               <p>Remark</p>
               <CustomInput
                 value={purchase.remark}
@@ -314,9 +332,12 @@ export default function Home() {
                 multiline={true}
                 placeholder={"Remark"}
                 onChange={(value) =>
-                  setPurchase((prev) => ({ ...prev, remark: value.target.value }))
+                  setPurchase((prev) => ({
+                    ...prev,
+                    remark: value.target.value,
+                  }))
                 }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
+                className={"w-[100%] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>

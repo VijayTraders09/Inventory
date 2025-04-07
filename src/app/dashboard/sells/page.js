@@ -56,14 +56,6 @@ export default function Orders() {
 
   const columnDefs = [
     {
-      headerName: "id",
-      field: "_id",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex: 1,
-    },
-    {
       headerName: "Customer Name",
       field: "buyerId",
       sortable: true,
@@ -73,16 +65,16 @@ export default function Orders() {
       ),
       flex: 1,
     },
-    {
-      headerName: "Goddown",
-      field: "godownId",
-      sortable: true,
-      filter: true,
-      cellRenderer: ({ value }) => (
-        <p className="text-black dark:white">{value.goddownName}</p>
-      ),
-      flex: 1,
-    },
+    // {
+    //   headerName: "Goddown",
+    //   field: "godownId",
+    //   sortable: true,
+    //   filter: true,
+    //   cellRenderer: ({ value }) => (
+    //     <p className="text-black dark:white">{value.goddownName}</p>
+    //   ),
+    //   flex: 1,
+    // },
     {
       headerName: "Mode of transport",
       field: "modeOfTransport",

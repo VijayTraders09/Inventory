@@ -5,13 +5,11 @@ import CustomInput from "@/components/custom-input";
 import ItemsTable from "@/components/items-table/ItemsTable";
 import SelectDropdown from "@/components/select-dropdown";
 import { Button } from "@/components/ui/button";
-import { db } from "@/firebase/config";
 import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
 import axios from "axios";
-import { addDoc, collection } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -23,7 +21,7 @@ const initialState = {
   modeOfTransport: 0,
   invoice: "",
   remark: "",
-}
+};
 export default function Home() {
   const transport = [
     {
@@ -39,76 +37,6 @@ export default function Home() {
       name: "Tempo",
     },
   ];
-
-  const [items, setItems] = useState([]);
-  const [item, setItem] = useState({
-    categoryId: 0,
-    productId: 0,
-    quantity: 0,
-  });
-
-  const [sale, setSale] = useState(initialState);
-
-  const onChange = (value, name) => {
-    setItem((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const addItemsToList = () => {
-    setItems((prev) => [
-      ...prev,
-      { ...item, idx: prev.length + 1, id: Math.round(Math.random() * 1000) },
-    ]);
-    setItem({
-      categoryId: 0,
-      productId: 0,
-      quantity: 0,
-    });
-  };
-
-  const handleSave = async () => {
-    if (!sale.customer) {
-      toast.error("Customer is required");
-      return;
-    }
-    if (!sale.goddown) {
-      toast.error("Goddown is required");
-      return;
-    }
-    if (!items?.length) {
-      toast.error("Item is required");
-      return;
-    }
-    if (!sale?.modeOfTransport) {
-      toast.error("mode of transport is required");
-      return;
-    }
-    if (!sale?.invoice) {
-      toast.error("Invoice is required");
-      return;
-    }
-    try {
-      const response = await axios.post("/api/sell", {
-        invoiceNumber: sale.invoice,
-        buyerId: sale.customer, // ID of the buyer
-        items: items,
-        godownId: sale.goddown, // ID of the godown where the product is stored
-        modeOfTransport: sale.modeOfTransport, // Mode of transport
-        remark: sale.remark, // Additional remarks
-      });
-      if(response.data.success){
-        setSale(initialState)
-        setItems([])
-        toast.success(response.data.message);
-      }else{
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error saving product:", error);
-      toast.error(error.message.toString());
-    } finally {
-    }
-  };
-
   const dispatch = useDispatch();
 
   const { buyers, fetched: fetchBuyerData } = useSelector(
@@ -126,7 +54,96 @@ export default function Home() {
     (state) => state.products
   );
 
-  const data = useSelector((state) => state.buyers);
+  const [items, setItems] = useState([]);
+  const [item, setItem] = useState({
+    categoryId: 0,
+    productId: 0,
+    quantity: 0,
+  });
+
+  const [sale, setSale] = useState(initialState);
+
+  const onChange = (value, name) => {
+    setItem((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const addItemsToList = () => {
+    if (!item.categoryId) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!item.productId) {
+      toast.error("Product is required");
+      return;
+    }
+    if (!item?.godownId) {
+      toast.error("Goddown is required");
+      return;
+    }
+    if (!item?.quantity) {
+      toast.error("quantity is required");
+      return;
+    }
+
+    // let selectedGoddown = goddowns.find(
+    //   (goddown) => goddown._id === item.godownId
+    // );
+    // selectedGoddown?.stock.forEach((goddown) => {
+    //   if (goddown.productId === item.productId) {
+    //     if (!(Number(goddown.quantity) > Number(item.quantity))) {
+    //       toast.error(item?.goddownName+" has "+goddown.quantity+" "+item?.productName );
+    //       return
+    //     }
+    //   }
+    // });
+    setItems((prev) => [
+      ...prev,
+      { ...item, idx: prev.length + 1, id: Math.round(Math.random() * 1000) },
+    ]);
+    setItem({
+      categoryId: 0,
+      productId: 0,
+      quantity: 0,
+    });
+  };
+
+  const handleSave = async () => {
+    if (!sale.customer) {
+      toast.error("Customer is required");
+      return;
+    }
+    if (!items?.length) {
+      toast.error("Item is required");
+      return;
+    }
+    if (!sale?.modeOfTransport) {
+      toast.error("mode of transport is required");
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/sell", {
+        invoiceNumber: sale.invoice,
+        buyerId: sale.customer, // ID of the buyer
+        items: items,
+        godownId: sale.goddown, // ID of the godown where the product is stored
+        modeOfTransport: sale.modeOfTransport, // Mode of transport
+        remark: sale.remark, // Additional remarks
+      });
+      if (response.data.success) {
+        setSale(initialState);
+        setItems([]);
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error(error.message.toString());
+    } finally {
+    }
+  };
+
   const [openCustomer, setOpenCustomer] = useState(false);
 
   useEffect(() => {
@@ -149,9 +166,9 @@ export default function Home() {
       <div className="w-[calc(100vw-14rem)] ">
         <h1 className="text-start text-2xl font-medium mt-4">VJ Traders</h1>
       </div>
-      <div className="w-[calc(100vw-20rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
+      <div className="w-[calc(100vw-16rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
         <div className="w-full flex items-center justify-between pb-2 border-b-2 border-b-grey">
-          <h3 className="text-xl font-medium">Your Requirements</h3>
+          <h3 className="text-xl font-medium">Your Requirements ( Sale )</h3>
           <Button
             className=" bg-button-gradient"
             onClick={() => setOpenCustomer(true)}
@@ -180,27 +197,24 @@ export default function Home() {
               />
             </div>
             <div>
-              <p>Select Goddown</p>
-              <SelectDropdown
-                list={goddowns.map((goddown) => ({
-                  id: goddown._id,
-                  name: goddown.goddownName,
-                }))}
-                label={"Select Goddown"}
-                value={sale.goddown}
+              <p>Invoice Number</p>
+              <CustomInput
+                value={sale.invoice}
+                type={"number"}
+                placeholder={"Invoice"}
                 onChange={(value) =>
-                  setSale((prev) => ({ ...prev, goddown: value }))
+                  setPurchase((prev) => ({
+                    ...prev,
+                    invoice: value.target.value,
+                  }))
                 }
-                placeholder={"Select"}
-                className={
-                  "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
-                }
+                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>
           <div className="flex items-end justify-between w-full gap-2">
             <div className="flex-3 w-full">
-              <p>Category Name</p>
+              <p>Select Category</p>
               <SelectDropdown
                 list={categories.map((category) => ({
                   id: category._id,
@@ -219,12 +233,12 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
             <div className="flex-3 w-full">
-              <p>Product Name</p>
+              <p>Select Product</p>
               <SelectDropdown
                 list={products.map((product) => ({
                   id: product._id,
@@ -242,7 +256,30 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                }
+              />
+            </div>
+            <div className="flex-3 w-full">
+              <p>Select Goddown</p>
+              <SelectDropdown
+                list={goddowns.map((goddown) => ({
+                  id: goddown._id,
+                  name: goddown.goddownName,
+                }))}
+                label={"Select Goddown"}
+                value={item.godownId}
+                onChange={(value) => {
+                  setItem((prev) => ({
+                    ...prev,
+                    godownId: value,
+                    goddownName: goddowns.find((prod) => prod._id == value)
+                      ?.goddownName,
+                  }));
+                }}
+                placeholder={"Select"}
+                className={
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
@@ -255,7 +292,7 @@ export default function Home() {
                 }
                 type={"number"}
                 placeholder={"Quantity"}
-                className={"w-full border-0 mt-2  bg-white rounded-md "}
+                className={"w-[14rem] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
             <Button
@@ -292,21 +329,9 @@ export default function Home() {
                 }
               />
             </div>
-            <div>
-              <p>Invoice Number</p>
-              <CustomInput
-                value={sale.invoice}
-                type={"number"}
-                placeholder={"Invoice"}
-                onChange={(value) =>
-                  setSale((prev) => ({ ...prev, invoice: value.target.value }))
-                }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
           </div>
           <div className="flex items-center justify-between w-full">
-            <div>
+            <div className="w-full">
               <p>Remark</p>
               <CustomInput
                 value={sale.remark}
@@ -316,7 +341,7 @@ export default function Home() {
                 onChange={(value) =>
                   setSale((prev) => ({ ...prev, remark: value.target.value }))
                 }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
+                className={"w-[100%] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>

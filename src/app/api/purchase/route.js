@@ -11,12 +11,14 @@ export async function GET() {
     await connect(); // Ensure the connection is established
     const sales = await Purchases.find({})
       .populate("sellerId") // Populate seller details
-      .populate("godownId") // Populate godown details
       .populate({
         path: "items.productId", // Populate product details inside items array
       })
       .populate({
         path: "items.categoryId", // Populate category details inside items array
+      })
+      .populate({
+        path: "items.godownId", // Populate godown details inside items array
       });
     return NextResponse.json(
       {
@@ -46,79 +48,27 @@ export async function POST(req) {
       id,
       modeOfTransport,
       remark,
-      godownId,
     } = await req.json();
-
+console.log(items)
     // Validate the input
     if (
-      (!invoiceNumber || !sellerId || !items || items.length === 0,
-      !modeOfTransport,
-      !godownId)
+      ( !sellerId || !items || items.length === 0,
+      !modeOfTransport)
     ) {
       return NextResponse.json({
-        message: "Invoice Number, Seller ID, and Items are required",
+        message: " Seller ID, and Items are required",
         status: 400,
       });
     }
 
-    console.log("godownId",godownId)
-
-    if (id) {
-      // Handle Update: Update the sale
-      await Purchases.findByIdAndUpdate(id, { invoiceNumber, sellerId, items });
-
-      // Loop through the items to update the products and godown
-      for (let item of items) {
-        const product = await Product.findById(item.productId);
-        const godown = await Goddown.findById(item.godownId);
-
-        // Update the quantity in the product
-        if (product) {
-          const quantityIndex = product.quantity.findIndex(
-            (entry) => entry.godownId.toString() === godown._id.toString()
-          );
-          if (quantityIndex !== -1) {
-            product.quantity[quantityIndex].quantity -= item.quantity;
-          } else {
-            product.quantity.push({
-              godownId: godown._id,
-              quantity: item.quantity,
-            });
-          }
-          await product.save();
-        }
-
-        // Update godown stock
-        if (godown) {
-          const godownStock = godown.stock.findIndex(
-            (entry) => entry.productId.toString() === item.productId.toString()
-          );
-          if (godownStock !== -1) {
-            godown.stock[godownStock].quantity -= item.quantity;
-          } else {
-            godown.stock.push({
-              productId: item.productId,
-              quantity: item.quantity,
-            });
-          }
-          await godown.save();
-        }
-      }
-
-      return NextResponse.json(
-        { message: "Purchase Updated", success: true },
-        { status: 200 }
-      );
-    }
-
     // Handle Create: Create a new sale
-    const newSale = new Purchases({ invoiceNumber, sellerId, items,godownId,modeOfTransport });
+    const newSale = new Purchases({ invoiceNumber, sellerId, items,modeOfTransport,remark });
     await newSale.save();
 
     // Loop through the items to update the products and godown
     for (let item of items) {
       const product = await Product.findById(item.productId);
-      const godown = await Goddown.findById(godownId);
+      const godown = await Goddown.findById(item?.godownId);
       
       // Update the quantity in the product
       if (product) {

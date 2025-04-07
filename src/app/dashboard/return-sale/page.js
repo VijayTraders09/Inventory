@@ -52,14 +52,7 @@ export default function Orders() {
   };
 
   const columnDefs = [
-    {
-      headerName: "id",
-      field: "_id",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex: 1,
-    },
+
     {
       headerName: "Customer Name",
       field: "buyerId",
@@ -67,16 +60,6 @@ export default function Orders() {
       filter: true,
       cellRenderer: ({ value }) => (
         <p className="text-black dark:white">{value.buyerName}</p>
-      ),
-      flex: 1,
-    },
-    {
-      headerName: "Goddown",
-      field: "godownId",
-      sortable: true,
-      filter: true,
-      cellRenderer: ({ value }) => (
-        <p className="text-black dark:white">{value.goddownName}</p>
       ),
       flex: 1,
     },
@@ -91,14 +74,6 @@ export default function Orders() {
     {
       headerName: "Invoice",
       field: "invoiceNumber",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex: 1,
-    },
-    {
-      headerName: "Sale Invoice",
-      field: "saleInvoice",
       sortable: true,
       filter: true,
       cellRenderer: CustomCell,
