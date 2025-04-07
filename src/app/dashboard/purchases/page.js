@@ -53,30 +53,12 @@ export default function Orders() {
 
   const columnDefs = [
     {
-      headerName: "id",
-      field: "_id",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex: 1,
-    },
-    {
       headerName: "Customer Name",
       field: "sellerId",
       sortable: true,
       filter: true,
       cellRenderer: ({ value }) => (
         <p className="text-black dark:white">{value.sellerName}</p>
-      ),
-      flex: 1,
-    },
-    {
-      headerName: "Goddown",
-      field: "godownId",
-      sortable: true,
-      filter: true,
-      cellRenderer: ({ value }) => (
-        <p className="text-black dark:white">{value.goddownName}</p>
       ),
       flex: 1,
     },

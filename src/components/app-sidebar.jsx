@@ -57,18 +57,18 @@ const items1 = [
     icon: Boxes,
   },
   {
-    title: "Purchase",
+    title: "Purchases",
     url: "/dashboard/purchases",
     icon: Boxes,
   },
   {
-    title: "Return Purchase",
-    url: "/dashboard/return-purchases",
+    title: "Sales Return",
+    url: "/dashboard/return-sale",
     icon: Boxes,
   },
   {
-    title: "Return Sale",
-    url: "/dashboard/return-sale",
+    title: "Purchases Return",
+    url: "/dashboard/return-purchases",
     icon: Boxes,
   },
   {

@@ -9,7 +9,7 @@ export async function GET(req) {
     await connect(); // Ensure the connection is established
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
-    const products = await Product.find({ categoryId }).populate("categoryId");
+    const products = await Product.find({ categoryId }).populate("categoryId").populate('quantity.godownId')
     return NextResponse.json(
       { data: products, success: true, message: "Products Fetched" },
       { status: 200 }

@@ -4,12 +4,6 @@ const purchaseReturnSchema = new mongoose.Schema(
   {
     invoiceNumber: {
       type: String,
-      required: true,
-      unique: true,
-    },
-    purchaseInvoice: {
-      type: String,
-      required: true,
     },
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -32,13 +26,14 @@ const purchaseReturnSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+        godownId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Goddown",
+          required: true,
+        },
       },
     ],
-    godownId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Goddown",
-      required: true,
-    },
+    
     modeOfTransport: {
       type: String,
       required: true,

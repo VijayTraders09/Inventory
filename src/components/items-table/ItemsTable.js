@@ -29,14 +29,6 @@ export default function ItemsTable({ list, setList, hideRemove }) {
   const columnDefs = hideRemove
     ? [
         {
-          headerName: "idx",
-          field: "_id",
-          sortable: true,
-          filter: true,
-          cellRenderer: CustomCell,
-          flex: 1,
-        },
-        {
           headerName: "Category Name",
           field: "categoryId",
           sortable: true,
@@ -53,6 +45,14 @@ export default function ItemsTable({ list, setList, hideRemove }) {
           flex: 2,
         },
         {
+          headerName: "Goddown Name",
+          field: "godownId",
+          sortable: true,
+          filter: true,
+          cellRenderer: ({value})=> <p className="text-black dark:white">{value.goddownName}</p>,
+          flex: 2,
+        },
+        {
           headerName: "Quantity",
           field: "quantity",
           sortable: true,
@@ -62,14 +62,6 @@ export default function ItemsTable({ list, setList, hideRemove }) {
         },
       ]
     : [
-        {
-          headerName: "idx",
-          field: "idx",
-          sortable: true,
-          filter: true,
-          cellRenderer: CustomCell,
-          flex: 1,
-        },
         {
           headerName: "Category Name",
           field: "categoryName",
@@ -81,6 +73,14 @@ export default function ItemsTable({ list, setList, hideRemove }) {
         {
           headerName: "Product Name",
           field: "productName",
+          sortable: true,
+          filter: true,
+          cellRenderer: CustomCell,
+          flex: 2,
+        },
+        {
+          headerName: "Goddown Name",
+          field: "goddownName",
           sortable: true,
           filter: true,
           cellRenderer: CustomCell,

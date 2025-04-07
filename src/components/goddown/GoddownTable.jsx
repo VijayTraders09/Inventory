@@ -43,14 +43,6 @@ export default function GoddownTable({
 
   const columnDefs = [
     {
-      headerName: "id",
-      field: "_id",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex:1
-    },
-    {
       headerName: "Goddown Name",
       field: "goddownName",
       sortable: true,

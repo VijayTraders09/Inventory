@@ -16,12 +16,9 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchSeller } from "@/store/slices/sellerSlice";
-import { GetPurchaseByInvoiceNumber } from "@/components/return-purchase/GetPurchaseByInvoiceNumber";
-import ReturnPurchseItemsTable from "@/components/return-purchase/ReturnPurchseItemsTable";
 
 const initialState = {
   seller: 0,
-  goddown: 0,
   items: [],
   modeOfTransport: 0,
   invoice: "",
@@ -57,6 +54,22 @@ export default function Home() {
   };
 
   const addItemsToList = () => {
+    if (!item.categoryId) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!item.productId) {
+      toast.error("Product is required");
+      return;
+    }
+    if (!item?.godownId) {
+      toast.error("Goddown is required");
+      return;
+    }
+    if (!item?.quantity) {
+      toast.error("quantity is required");
+      return;
+    }
     setItems((prev) => [
       ...prev,
       { ...item, idx: prev.length + 1, id: Math.round(Math.random() * 1000) },
@@ -66,25 +79,14 @@ export default function Home() {
       productId: 0,
       quantity: 0,
     });
-    setPurchase((prev) => ({
-      ...prev,
-      items: prev.items.map((row) => {
-        if (row?._id === item._id) return item;
-        return row;
-      }),
-    }));
   };
 
   const handleSave = async () => {
     if (!purchase.seller) {
-      toast.error("Seller is required");
+      toast.error("Purchaser is required");
       return;
     }
-    if (!purchase.goddown) {
-      toast.error("Goddown is required");
-      return;
-    }
-    if (!purchase?.items?.length) {
+    if (!items?.length) {
       toast.error("Item is required");
       return;
     }
@@ -92,19 +94,15 @@ export default function Home() {
       toast.error("mode of transport is required");
       return;
     }
-    if (!purchase?.invoice) {
-      toast.error("Invoice is required");
-      return;
-    }
+    
     try {
       const response = await axios.post("/api/return-purchase", {
         invoiceNumber: purchase.invoice,
         sellerId: purchase.seller, // ID of the seller
-        items: purchase?.items,
-        godownId: purchase.goddown, // ID of the godown where the product is stored
+        items: items,
+        // godownId: purchase.goddown, // ID of the godown where the product is stored
         modeOfTransport: purchase.modeOfTransport, // Mode of transport
         remark: purchase.remark, // Additional remarks
-        purchaseInvoice: purchase.purchaseInvoice,
       });
       if (response.data.success) {
         setPurchase(initialState);
@@ -137,7 +135,8 @@ export default function Home() {
     (state) => state.products
   );
 
-  const [open, setOpen] = useState(false);
+  const data = useSelector((state) => state.sellers);
+  const [openSeller, setOpenSeller] = useState(false);
 
   useEffect(() => {
     if (!fetchBuyerData) dispatch(fetchSeller());
@@ -146,45 +145,40 @@ export default function Home() {
     dispatch(fetchProductsByCategory(""));
   }, []);
 
-  useEffect(() => {
-    if (item?.categoryId) dispatch(fetchProductsByCategory(item?.categoryId));
-  }, [item]);
-
-  // console.clear();
-  console.log("item", item);
+  console.log(items)
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">
-      <GetPurchaseByInvoiceNumber
-        open={open}
-        setOpen={setOpen}
+      {/* <AddSeller
+        open={openSeller}
+        setOpen={setOpenSeller}
         hideAddButton={true}
-        setPurchase={setPurchase}
-      />
+      /> */}
       <div className="w-[calc(100vw-14rem)] ">
         <h1 className="text-start text-2xl font-medium mt-4">VJ Traders</h1>
       </div>
-      <div className="w-[calc(100vw-20rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
+      <div className="w-[calc(100vw-16rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
         <div className="w-full flex items-center justify-between pb-2 border-b-2 border-b-grey">
-          <h3 className="text-xl font-medium">Your Requirements</h3>
-          <Button
+          <h3 className="text-xl font-medium">
+            Your Requirements ( Purchase Return )
+          </h3>
+          {/* <Button
             className=" bg-button-gradient"
-            onClick={() => setOpen(true)}
+            onClick={() => setOpenSeller(true)}
           >
-            Get Purchase Record
-          </Button>
+            Add New Purchaser
+          </Button> */}
         </div>
         <div className="w-full mt-4 space-y-6 h-[30rem] overflow-auto">
           <div className="flex items-center justify-between w-full">
             <div>
-              <p>Seller Name</p>
+              <p>Purchaser Name</p>
               <SelectDropdown
                 list={sellers.map((seller) => ({
                   id: seller._id,
                   name: seller.sellerName,
                 }))}
-                disabled={true}
-                label={"Select Seller"}
+                label={"Select Purchaser"}
                 value={purchase.seller}
                 onChange={(value) =>
                   setPurchase((prev) => ({ ...prev, seller: value }))
@@ -196,28 +190,24 @@ export default function Home() {
               />
             </div>
             <div>
-              <p>Select Goddown</p>
-              <SelectDropdown
-                list={goddowns.map((goddown) => ({
-                  id: goddown._id,
-                  name: goddown.goddownName,
-                }))}
-                disabled={true}
-                label={"Select Goddown"}
-                value={purchase.goddown}
+              <p>Invoice Number</p>
+              <CustomInput
+                value={purchase.invoice}
+                type={"number"}
+                placeholder={"Invoice"}
                 onChange={(value) =>
-                  setPurchase((prev) => ({ ...prev, goddown: value }))
+                  setPurchase((prev) => ({
+                    ...prev,
+                    invoice: value.target.value,
+                  }))
                 }
-                placeholder={"Select"}
-                className={
-                  "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
-                }
+                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>
           <div className="flex items-end justify-between w-full gap-2">
             <div className="flex-3 w-full">
-              <p>Category Name</p>
+              <p>Select Category</p>
               <SelectDropdown
                 list={categories.map((category) => ({
                   id: category._id,
@@ -225,7 +215,6 @@ export default function Home() {
                 }))}
                 label={"Select Category"}
                 value={item.categoryId}
-                disabled={true}
                 onChange={(value) => {
                   setItem((prev) => ({
                     ...prev,
@@ -237,18 +226,17 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
             <div className="flex-3 w-full">
-              <p>Product Name</p>
+              <p>Select Product</p>
               <SelectDropdown
                 list={products.map((product) => ({
                   id: product._id,
                   name: product.productName,
                 }))}
-                disabled={true}
                 label={"Select Product"}
                 value={item.productId}
                 onChange={(value) => {
@@ -261,7 +249,30 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                }
+              />
+            </div>
+            <div className="flex-3 w-full">
+              <p>Select Goddown</p>
+              <SelectDropdown
+                list={goddowns.map((goddown) => ({
+                  id: goddown._id,
+                  name: goddown.goddownName,
+                }))}
+                label={"Select Goddown"}
+                value={item.godownId}
+                onChange={(value) => {
+                  setItem((prev) => ({
+                    ...prev,
+                    godownId: value,
+                    goddownName: goddowns.find((prod) => prod._id == value)
+                      ?.goddownName,
+                  }));
+                }}
+                placeholder={"Select"}
+                className={
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
@@ -274,22 +285,19 @@ export default function Home() {
                 }
                 type={"number"}
                 placeholder={"Quantity"}
-                className={"w-full border-0 mt-2  bg-white rounded-md "}
+                className={"w-[14rem] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
             <Button
               onClick={addItemsToList}
               className="flex-2 bg-button-gradient"
             >
-              Save Item
+              Add Item
             </Button>
           </div>
-          {purchase?.items?.length ? (
+          {items.length ? (
             <div className="flex items-center justify-between w-full">
-              <ReturnPurchseItemsTable
-                list={purchase.items}
-                setItem={setItem}
-              />
+              <ItemsTable list={items} setList={setItems} />
             </div>
           ) : (
             ""
@@ -313,34 +321,10 @@ export default function Home() {
                 }
               />
             </div>
-            <div>
-              <p>Purchase Invoice Number</p>
-              <CustomInput
-                value={purchase.invoice}
-                type={"number"}
-                placeholder={"Invoice"}
-                onChange={(value) =>
-                  setPurchase((prev) => ({
-                    ...prev,
-                    invoice: value.target.value,
-                  }))
-                }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
+            
           </div>
           <div className="flex items-center justify-between w-full">
-            <div>
-              <p>Purchase Invoice Number</p>
-              <CustomInput
-                value={purchase.purchaseInvoice}
-                type={"number"}
-                disabled={true}
-                placeholder={"Invoice"}
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
-            <div>
+            <div className="w-full">
               <p>Remark</p>
               <CustomInput
                 value={purchase.remark}
@@ -353,7 +337,7 @@ export default function Home() {
                     remark: value.target.value,
                   }))
                 }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
+                className={"w-[100%] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>

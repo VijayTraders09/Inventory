@@ -67,7 +67,7 @@ export function AddSeller({
         <div className="w-full flex justify-end">
           <DialogTrigger asChild>
             <Button variant="outline" className="bg-buttonBg text-white">
-              Add Seller
+              Add Purchaser
             </Button>
           </DialogTrigger>
         </div>
@@ -76,13 +76,13 @@ export function AddSeller({
       <DialogContent className="sm:max-w-[555px]">
         <DialogHeader>
           <DialogTitle>
-            {selectedSeller?._id ? "Update " : "New "} Seller
+            {selectedSeller?._id ? "Update " : "New "} Purchaser
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-5 items-center gap-2 ">
             <p htmlFor="name" className=" font-medium text-md col-span-2">
-              Seller Name :
+              Purchaser Name :
             </p>
             <Input
               id="name"

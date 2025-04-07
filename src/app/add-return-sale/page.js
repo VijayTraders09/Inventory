@@ -1,22 +1,23 @@
 "use client";
 
+import { AddBuyer } from "@/components/buyer/AddBuyer";
 import CustomInput from "@/components/custom-input";
-import { GetSaleByInvoiceNumber } from "@/components/return-sale/GetSaleByInvoiceNumber";
-import ReturnPurchseItemsTable from "@/components/return-sale/ReturnSaleItemsTable";
+import ItemsTable from "@/components/items-table/ItemsTable";
 import SelectDropdown from "@/components/select-dropdown";
 import { Button } from "@/components/ui/button";
+import { db } from "@/firebase/config";
 import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
-import { fetchSeller } from "@/store/slices/sellerSlice";
 import axios from "axios";
+import { addDoc, collection } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
 const initialState = {
-  buyer: 0,
+  customer: 0,
   goddown: 0,
   items: [],
   modeOfTransport: 0,
@@ -53,6 +54,22 @@ export default function Home() {
   };
 
   const addItemsToList = () => {
+    if (!item.categoryId) {
+      toast.error("Category is required");
+      return;
+    }
+    if (!item.productId) {
+      toast.error("Product is required");
+      return;
+    }
+    if (!item?.godownId) {
+      toast.error("Goddown is required");
+      return;
+    }
+    if (!item?.quantity) {
+      toast.error("quantity is required");
+      return;
+    }
     setItems((prev) => [
       ...prev,
       { ...item, idx: prev.length + 1, id: Math.round(Math.random() * 1000) },
@@ -62,25 +79,14 @@ export default function Home() {
       productId: 0,
       quantity: 0,
     });
-    setSale((prev) => ({
-      ...prev,
-      items: prev.items.map((row) => {
-        if (row?._id === item._id) return item;
-        return row;
-      }),
-    }));
   };
 
   const handleSave = async () => {
-    if (!sale.buyer) {
-      toast.error("Seller is required");
+    if (!sale.customer) {
+      toast.error("Customer is required");
       return;
     }
-    if (!sale.goddown) {
-      toast.error("Goddown is required");
-      return;
-    }
-    if (!sale?.items?.length) {
+    if (!items?.length) {
       toast.error("Item is required");
       return;
     }
@@ -88,19 +94,15 @@ export default function Home() {
       toast.error("mode of transport is required");
       return;
     }
-    if (!sale?.invoice) {
-      toast.error("Invoice is required");
-      return;
-    }
+
     try {
       const response = await axios.post("/api/return-sale", {
         invoiceNumber: sale.invoice,
-        buyerId: sale.buyer, // ID of the buyer
-        items: sale?.items,
+        buyerId: sale.customer, // ID of the buyer
+        items: items,
         godownId: sale.goddown, // ID of the godown where the product is stored
         modeOfTransport: sale.modeOfTransport, // Mode of transport
         remark: sale.remark, // Additional remarks
-        saleInvoice: sale.saleInvoice,
       });
       if (response.data.success) {
         setSale(initialState);
@@ -133,7 +135,8 @@ export default function Home() {
     (state) => state.products
   );
 
-  const [open, setOpen] = useState(false);
+  const data = useSelector((state) => state.buyers);
+  const [openCustomer, setOpenCustomer] = useState(false);
 
   useEffect(() => {
     if (!fetchBuyerData) dispatch(fetchBuyer());
@@ -142,33 +145,28 @@ export default function Home() {
     dispatch(fetchProductsByCategory(""));
   }, []);
 
-  useEffect(() => {
-    if (item?.categoryId) dispatch(fetchProductsByCategory(item?.categoryId));
-  }, [item]);
-
   // console.clear();
-  console.log("item", item);
+  console.log(sale);
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">
-      <GetSaleByInvoiceNumber
-        open={open}
-        setOpen={setOpen}
+      <AddBuyer
+        open={openCustomer}
+        setOpen={setOpenCustomer}
         hideAddButton={true}
-        setSale={setSale}
       />
       <div className="w-[calc(100vw-14rem)] ">
         <h1 className="text-start text-2xl font-medium mt-4">VJ Traders</h1>
       </div>
-      <div className="w-[calc(100vw-20rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
+      <div className="w-[calc(100vw-16rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
         <div className="w-full flex items-center justify-between pb-2 border-b-2 border-b-grey">
-          <h3 className="text-xl font-medium">Your Requirements</h3>
-          <Button
+          <h3 className="text-xl font-medium">Your Requirements ( Sale Return )</h3>
+          {/* <Button
             className=" bg-button-gradient"
-            onClick={() => setOpen(true)}
+            onClick={() => setOpenCustomer(true)}
           >
-            Get Sale Record
-          </Button>
+            Add New Customer
+          </Button> */}
         </div>
         <div className="w-full mt-4 space-y-6 h-[30rem] overflow-auto">
           <div className="flex items-center justify-between w-full">
@@ -179,11 +177,10 @@ export default function Home() {
                   id: buyer._id,
                   name: buyer.buyerName,
                 }))}
-                disabled={true}
-                label={"Select Seller"}
-                value={sale.buyer}
+                label={"Select Customer"}
+                value={sale.customer}
                 onChange={(value) =>
-                  setSale((prev) => ({ ...prev, buyer: value }))
+                  setSale((prev) => ({ ...prev, customer: value }))
                 }
                 placeholder={"Select"}
                 className={
@@ -192,28 +189,24 @@ export default function Home() {
               />
             </div>
             <div>
-              <p>Select Goddown</p>
-              <SelectDropdown
-                list={goddowns.map((goddown) => ({
-                  id: goddown._id,
-                  name: goddown.goddownName,
-                }))}
-                disabled={true}
-                label={"Select Goddown"}
-                value={sale.goddown}
+              <p>Invoice Number</p>
+              <CustomInput
+                value={sale.invoice}
+                type={"number"}
+                placeholder={"Invoice"}
                 onChange={(value) =>
-                  setSale((prev) => ({ ...prev, goddown: value }))
+                  setPurchase((prev) => ({
+                    ...prev,
+                    invoice: value.target.value,
+                  }))
                 }
-                placeholder={"Select"}
-                className={
-                  "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
-                }
+                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>
           <div className="flex items-end justify-between w-full gap-2">
             <div className="flex-3 w-full">
-              <p>Category Name</p>
+              <p>Select Category</p>
               <SelectDropdown
                 list={categories.map((category) => ({
                   id: category._id,
@@ -221,7 +214,6 @@ export default function Home() {
                 }))}
                 label={"Select Category"}
                 value={item.categoryId}
-                disabled={true}
                 onChange={(value) => {
                   setItem((prev) => ({
                     ...prev,
@@ -233,18 +225,17 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
             <div className="flex-3 w-full">
-              <p>Product Name</p>
+              <p>Select Product</p>
               <SelectDropdown
                 list={products.map((product) => ({
                   id: product._id,
                   name: product.productName,
                 }))}
-                disabled={true}
                 label={"Select Product"}
                 value={item.productId}
                 onChange={(value) => {
@@ -257,7 +248,30 @@ export default function Home() {
                 }}
                 placeholder={"Select"}
                 className={
-                  "w-[350px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
+                }
+              />
+            </div>
+            <div className="flex-3 w-full">
+              <p>Select Goddown</p>
+              <SelectDropdown
+                list={goddowns.map((goddown) => ({
+                  id: goddown._id,
+                  name: goddown.goddownName,
+                }))}
+                label={"Select Goddown"}
+                value={item.godownId}
+                onChange={(value) => {
+                  setItem((prev) => ({
+                    ...prev,
+                    godownId: value,
+                    goddownName: goddowns.find((prod) => prod._id == value)
+                      ?.goddownName,
+                  }));
+                }}
+                placeholder={"Select"}
+                className={
+                  "w-[17rem] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
               />
             </div>
@@ -270,22 +284,19 @@ export default function Home() {
                 }
                 type={"number"}
                 placeholder={"Quantity"}
-                className={"w-full border-0 mt-2  bg-white rounded-md "}
+                className={"w-[14rem] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
             <Button
               onClick={addItemsToList}
               className="flex-2 bg-button-gradient"
             >
-              Save Item
+              Add Item
             </Button>
           </div>
-          {sale?.items?.length ? (
+          {items.length ? (
             <div className="flex items-center justify-between w-full">
-              <ReturnPurchseItemsTable
-                list={sale.items}
-                setItem={setItem}
-              />
+              <ItemsTable list={items} setList={setItems} />
             </div>
           ) : (
             ""
@@ -302,6 +313,7 @@ export default function Home() {
                 value={sale.modeOfTransport}
                 onChange={(value) => {
                   setSale((prev) => ({ ...prev, modeOfTransport: value }));
+                  console.log(value);
                 }}
                 placeholder={"Select"}
                 className={
@@ -309,34 +321,9 @@ export default function Home() {
                 }
               />
             </div>
-            <div>
-              <p>Purchase Invoice Number</p>
-              <CustomInput
-                value={sale.invoice}
-                type={"number"}
-                placeholder={"Invoice"}
-                onChange={(value) =>
-                  setSale((prev) => ({
-                    ...prev,
-                    invoice: value.target.value,
-                  }))
-                }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
           </div>
           <div className="flex items-center justify-between w-full">
-            <div>
-              <p>Purchase Invoice Number</p>
-              <CustomInput
-                value={sale.saleInvoice}
-                type={"number"}
-                disabled={true}
-                placeholder={"Invoice"}
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
-              />
-            </div>
-            <div>
+            <div className="w-full">
               <p>Remark</p>
               <CustomInput
                 value={sale.remark}
@@ -344,12 +331,9 @@ export default function Home() {
                 multiline={true}
                 placeholder={"Remark"}
                 onChange={(value) =>
-                  setSale((prev) => ({
-                    ...prev,
-                    remark: value.target.value,
-                  }))
+                  setSale((prev) => ({ ...prev, remark: value.target.value }))
                 }
-                className={"w-[500px] border-0 mt-2  bg-white rounded-md "}
+                className={"w-[100%] border-0 mt-2  bg-white rounded-md "}
               />
             </div>
           </div>

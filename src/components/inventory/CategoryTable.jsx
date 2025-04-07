@@ -57,14 +57,6 @@ export default function CategoryTable({
 
   const columnDefs = [
     {
-      headerName: "id",
-      field: "_id",
-      sortable: true,
-      filter: true,
-      cellRenderer: CustomCell,
-      flex:1
-    },
-    {
       headerName: "Category Name",
       field: "categoryName",
       sortable: true,
