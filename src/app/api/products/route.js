@@ -1,6 +1,8 @@
 // app/api/products/route.js
 
 import Product from "@/models/product";
+import Goddown from "@/models/goddown";
+import Category from "@/models/category";
 import connect from "../../../lib/db";
 import { NextResponse } from "next/server";
 
