@@ -40,23 +40,29 @@ export async function POST(req) {
       });
     }
     if (!isValidMobileNumber(mobileNumber)) {
-        return NextResponse.json({
-          message: "Invalid Mobile Number",
-          status: 400,
-        });
-      }
-
-      let isExits = await Buyer.findOne({mobileNumber})
-      console.log(isExits)
-      if(isExits)  return NextResponse.json({
-        message: "Mobile Number exits",
+      return NextResponse.json({
+        message: "Invalid Mobile Number",
         status: 400,
       });
-
+    }
     if (id) {
       await Buyer.findByIdAndUpdate(id, { buyerName, mobileNumber });
-      return NextResponse.json({ message: "Buyer Updated" }, { status: 200 });
+      return NextResponse.json(
+        {
+          data: {},
+          success: true,
+          message: "Buyer Updated",
+        },
+        { status: 200 }
+      );
     }
+    let isExits = await Buyer.findOne({ mobileNumber });
+    // if (isExits)
+    //   return NextResponse.json({
+    //     message: "Mobile Number exits",
+    //     status: 400,
+    //   });
+
     const newBuyer = new Buyer({ buyerName, mobileNumber });
     await newBuyer.save();
     return NextResponse.json(

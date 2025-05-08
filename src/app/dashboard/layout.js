@@ -29,18 +29,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SidebarProvider>
-              <AppSidebar logo={logo} />
-            <div className=" w-full">
-              <Header ModeToggle={ModeToggle} SidebarTrigger={SidebarTrigger} />
-            {children}
-            </div>
-          </SidebarProvider>
-        </ThemeProvider>
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SidebarProvider>
+        <AppSidebar logo={logo} />
+        <div className=" w-full">
+          <Header ModeToggle={ModeToggle} SidebarTrigger={SidebarTrigger} />
+          {children}
+        </div>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

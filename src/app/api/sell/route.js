@@ -6,20 +6,37 @@ import Buyer from "@/models/buyer";
 import Category from "@/models/category";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req) {
   try {
     await connect(); // Ensure the connection is established
-    const sales = await Sales.find({})
-      .populate("buyerId") // Populate buyer details
-      .populate({
-        path: "items.productId", // Populate product details inside items array
-      })
-      .populate({
-        path: "items.categoryId", // Populate category details inside items array
-      })
-      .populate({
-        path: "items.godownId", // Populate godownId details inside items array
-      });
+    const { searchParams } = new URL(req.url);
+    const buyerId = searchParams.get("buyerId");
+    let sales = {};
+    if (buyerId) {
+      sales = await Sales.find({ buyerId })
+        .populate("buyerId") // Populate buyer details
+        .populate({
+          path: "items.productId", // Populate product details inside items array
+        })
+        .populate({
+          path: "items.categoryId", // Populate category details inside items array
+        })
+        .populate({
+          path: "items.godownId", // Populate godownId details inside items array
+        });
+    } else {
+      sales = await Sales.find({})
+        .populate("buyerId") // Populate buyer details
+        .populate({
+          path: "items.productId", // Populate product details inside items array
+        })
+        .populate({
+          path: "items.categoryId", // Populate category details inside items array
+        })
+        .populate({
+          path: "items.godownId", // Populate godownId details inside items array
+        });
+    }
     return NextResponse.json(
       {
         data: sales,
@@ -41,20 +58,11 @@ export async function POST(req) {
   try {
     await connect();
     console.log("dvd");
-    const {
-      invoiceNumber,
-      buyerId,
-      items,
-      id,
-      modeOfTransport,
-      remark,
-    } = await req.json();
+    const { invoiceNumber, buyerId, items, id, modeOfTransport, remark } =
+      await req.json();
 
     // Validate the input
-    if (
-      ( !buyerId || !items || items.length === 0,
-      !modeOfTransport)
-    ) {
+    if ((!buyerId || !items || items.length === 0, !modeOfTransport)) {
       return NextResponse.json({
         message: "Invoice Number, Buyer ID, and Items are required",
         status: 400,

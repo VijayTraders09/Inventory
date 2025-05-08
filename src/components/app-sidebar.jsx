@@ -43,7 +43,7 @@ const items1 = [
   },
   {
     title: "Customer Report",
-    url: "#",
+    url: "/dashboard/customer-report",
     icon: ChartColumnIncreasing,
   },
   {
@@ -52,7 +52,7 @@ const items1 = [
     icon: User,
   },
   {
-    title: "Sells",
+    title: "Sales",
     url: "/dashboard/sells",
     icon: Boxes,
   },
@@ -69,6 +69,11 @@ const items1 = [
   {
     title: "Purchases Return",
     url: "/dashboard/return-purchases",
+    icon: Boxes,
+  },
+  {
+    title: "Transport",
+    url: "/dashboard/transport",
     icon: Boxes,
   },
   {

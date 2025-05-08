@@ -9,6 +9,7 @@ import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
+import { fetchTransport } from "@/store/slices/transportSlice";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -23,20 +24,7 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
-  const transport = [
-    {
-      id: "1",
-      name: "Car",
-    },
-    {
-      id: "2",
-      name: "Truck",
-    },
-    {
-      id: "3",
-      name: "Tempo",
-    },
-  ];
+  
   const dispatch = useDispatch();
 
   const { buyers, fetched: fetchBuyerData } = useSelector(
@@ -52,6 +40,9 @@ export default function Home() {
   );
   const { products, fetched: fetchProductData } = useSelector(
     (state) => state.products
+  );
+  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
+    (state) => state.transports
   );
 
   const [items, setItems] = useState([]);
@@ -150,6 +141,7 @@ export default function Home() {
     if (!fetchBuyerData) dispatch(fetchBuyer());
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
+    if (!fetchTransportData) dispatch(fetchTransport());
     dispatch(fetchProductsByCategory(""));
   }, []);
 
@@ -313,9 +305,9 @@ export default function Home() {
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown
-                list={transport.map((mode) => ({
-                  id: mode.id,
-                  name: mode.name,
+                list={transports.map((mode) => ({
+                  id: mode.transport,
+                  name: mode.transport,
                 }))}
                 label={"Select Mode of transport"}
                 value={sale.modeOfTransport}

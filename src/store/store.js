@@ -10,6 +10,7 @@ import sellReducer from "./slices/sellSlice";
 import purchaseReducer from "./slices/purchaseSlice";
 import returnSaleReducer from "./slices/returnSaleSlice";
 import returnPurchaseReducer from "./slices/returnPurchaseSlice";
+import transportReducer from "./slices/transportSlice";
 
 export const store = configureStore({
   reducer: {
@@ -23,5 +24,6 @@ export const store = configureStore({
     purchases: purchaseReducer,
     returnPurchases: returnPurchaseReducer,
     returnSales: returnSaleReducer,
+    transports: transportReducer,
   },
 });
