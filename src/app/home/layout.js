@@ -1,5 +1,6 @@
 import {  Inter } from "next/font/google";
 import "../globals.css";
+import { ToastContainer } from "react-toastify";
 
 export const metadata = {
   title: "Create Next App",
@@ -15,6 +16,8 @@ const inter = Inter({
 export default function RootLayout({ children }) {
   return (
       <body   className="bg-bgGrey" >
+        <ToastContainer position="top-right" autoClose={3000} />
+        
         {children}
       </body>
   );

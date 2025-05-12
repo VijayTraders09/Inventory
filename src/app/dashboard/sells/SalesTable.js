@@ -97,8 +97,16 @@ export default function SalesTable({ selectedBuyer }) {
       filter: "agDateColumnFilter",
       valueGetter: ({ data }) =>
         data?.createdAt ? new Date(data.createdAt) : null,
-      valueFormatter: ({ value }) =>
-        value ? new Date(value).toLocaleDateString() : "",
+      valueFormatter: ({ value }) => {
+        if (value) {
+          const date = new Date(value);
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`; // Format as dd/mm/yyyy
+        }
+        return "";
+      },
       comparator: (date1, date2) => {
         return date1.getTime() - date2.getTime();
       },

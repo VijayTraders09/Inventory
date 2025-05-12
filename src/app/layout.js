@@ -18,7 +18,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body className="bg-bgGrey">
-        <ToastContainer position="top-right" autoClose={3000} />
         <ReduxProvider>{children}</ReduxProvider>
       </body>
     </html>

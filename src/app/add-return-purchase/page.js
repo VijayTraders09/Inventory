@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchSeller } from "@/store/slices/sellerSlice";
+import { fetchTransport } from "@/store/slices/transportSlice";
+import { AddTransport } from "@/components/transport/AddTransport";
 
 const initialState = {
   seller: 0,
@@ -25,21 +27,7 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
-  const transport = [
-    {
-      id: "1",
-      name: "Car",
-    },
-    {
-      id: "2",
-      name: "Truck",
-    },
-    {
-      id: "3",
-      name: "Tempo",
-    },
-  ];
-
+ 
   const [items, setItems] = useState([]);
   const [item, setItem] = useState({
     categoryId: 0,
@@ -48,6 +36,8 @@ export default function Home() {
   });
 
   const [purchase, setPurchase] = useState(initialState);
+    const [openAddTransport, setOpenAddTransport] = useState(false);
+
 
   const onChange = (value, name) => {
     setItem((prev) => ({ ...prev, [name]: value }));
@@ -134,6 +124,10 @@ export default function Home() {
   const { products, fetched: fetchProductData } = useSelector(
     (state) => state.products
   );
+  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
+    (state) => state.transports
+  );
+
 
   const data = useSelector((state) => state.sellers);
   const [openSeller, setOpenSeller] = useState(false);
@@ -142,6 +136,8 @@ export default function Home() {
     if (!fetchBuyerData) dispatch(fetchSeller());
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
+        if (!fetchTransportData) dispatch(fetchTransport());
+
     dispatch(fetchProductsByCategory(""));
   }, []);
 
@@ -302,13 +298,13 @@ export default function Home() {
           ) : (
             ""
           )}
-          <div className="flex items-center justify-between w-full">
+           <div className="flex items-end gap-2 w-full">
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown
-                list={transport.map((mode) => ({
-                  id: mode.id,
-                  name: mode.name,
+                list={transports.map((mode) => ({
+                  id: mode.transport,
+                  name: mode.transport,
                 }))}
                 label={"Select Mode of transport"}
                 value={purchase.modeOfTransport}
@@ -321,7 +317,12 @@ export default function Home() {
                 }
               />
             </div>
-            
+            <div>
+              <AddTransport
+                open={openAddTransport}
+                setOpen={setOpenAddTransport}
+              />
+            </div>
           </div>
           <div className="flex items-center justify-between w-full">
             <div className="w-full">

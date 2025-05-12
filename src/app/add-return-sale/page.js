@@ -4,12 +4,14 @@ import { AddBuyer } from "@/components/buyer/AddBuyer";
 import CustomInput from "@/components/custom-input";
 import ItemsTable from "@/components/items-table/ItemsTable";
 import SelectDropdown from "@/components/select-dropdown";
+import { AddTransport } from "@/components/transport/AddTransport";
 import { Button } from "@/components/ui/button";
 import { db } from "@/firebase/config";
 import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
+import { fetchTransport } from "@/store/slices/transportSlice";
 import axios from "axios";
 import { addDoc, collection } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -25,21 +27,7 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
-  const transport = [
-    {
-      id: "1",
-      name: "Car",
-    },
-    {
-      id: "2",
-      name: "Truck",
-    },
-    {
-      id: "3",
-      name: "Tempo",
-    },
-  ];
-
+ 
   const [items, setItems] = useState([]);
   const [item, setItem] = useState({
     categoryId: 0,
@@ -48,6 +36,8 @@ export default function Home() {
   });
 
   const [sale, setSale] = useState(initialState);
+    const [openAddTransport, setOpenAddTransport] = useState(false);
+
 
   const onChange = (value, name) => {
     setItem((prev) => ({ ...prev, [name]: value }));
@@ -135,6 +125,11 @@ export default function Home() {
     (state) => state.products
   );
 
+  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
+    (state) => state.transports
+  );
+
+
   const data = useSelector((state) => state.buyers);
   const [openCustomer, setOpenCustomer] = useState(false);
 
@@ -142,6 +137,8 @@ export default function Home() {
     if (!fetchBuyerData) dispatch(fetchBuyer());
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
+        if (!fetchTransportData) dispatch(fetchTransport());
+    
     dispatch(fetchProductsByCategory(""));
   }, []);
 
@@ -195,7 +192,7 @@ export default function Home() {
                 type={"number"}
                 placeholder={"Invoice"}
                 onChange={(value) =>
-                  setPurchase((prev) => ({
+                  setSale((prev) => ({
                     ...prev,
                     invoice: value.target.value,
                   }))
@@ -301,24 +298,29 @@ export default function Home() {
           ) : (
             ""
           )}
-          <div className="flex items-center justify-between w-full">
+           <div className="flex items-end gap-2 w-full">
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown
-                list={transport.map((mode) => ({
-                  id: mode.id,
-                  name: mode.name,
+                list={transports.map((mode) => ({
+                  id: mode.transport,
+                  name: mode.transport,
                 }))}
                 label={"Select Mode of transport"}
                 value={sale.modeOfTransport}
                 onChange={(value) => {
                   setSale((prev) => ({ ...prev, modeOfTransport: value }));
-                  console.log(value);
                 }}
                 placeholder={"Select"}
                 className={
                   "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
+              />
+            </div>
+            <div>
+              <AddTransport
+                open={openAddTransport}
+                setOpen={setOpenAddTransport}
               />
             </div>
           </div>
