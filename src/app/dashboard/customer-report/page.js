@@ -11,6 +11,7 @@ import {
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { useState } from "react";
 import SalesTable from "../sells/SalesTable";
+import { ToastContainer } from "react-toastify";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -23,6 +24,8 @@ const page = () => {
 
   return (
     <div className=" w-full p-4">
+              <ToastContainer position="top-right" autoClose={3000} />
+
       <AddBuyer
         selectedBuyer={selectedBuyer}
         setSelectedBuyer={setSelectedBuyer}

@@ -4,6 +4,7 @@ import { AddBuyer } from "@/components/buyer/AddBuyer";
 import CustomInput from "@/components/custom-input";
 import ItemsTable from "@/components/items-table/ItemsTable";
 import SelectDropdown from "@/components/select-dropdown";
+import { AddTransport } from "@/components/transport/AddTransport";
 import { Button } from "@/components/ui/button";
 import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
@@ -24,7 +25,6 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
-  
   const dispatch = useDispatch();
 
   const { buyers, fetched: fetchBuyerData } = useSelector(
@@ -41,9 +41,12 @@ export default function Home() {
   const { products, fetched: fetchProductData } = useSelector(
     (state) => state.products
   );
-  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
-    (state) => state.transports
-  );
+  const {
+    transports,
+    loading,
+    error,
+    fetched: fetchTransportData,
+  } = useSelector((state) => state.transports);
 
   const [items, setItems] = useState([]);
   const [item, setItem] = useState({
@@ -53,6 +56,7 @@ export default function Home() {
   });
 
   const [sale, setSale] = useState(initialState);
+  const [openAddTransport, setOpenAddTransport] = useState(false);
 
   const onChange = (value, name) => {
     setItem((prev) => ({ ...prev, [name]: value }));
@@ -195,7 +199,7 @@ export default function Home() {
                 type={"number"}
                 placeholder={"Invoice"}
                 onChange={(value) =>
-                  setPurchase((prev) => ({
+                  setSale((prev) => ({
                     ...prev,
                     invoice: value.target.value,
                   }))
@@ -301,7 +305,7 @@ export default function Home() {
           ) : (
             ""
           )}
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-end gap-2 w-full">
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown
@@ -313,12 +317,17 @@ export default function Home() {
                 value={sale.modeOfTransport}
                 onChange={(value) => {
                   setSale((prev) => ({ ...prev, modeOfTransport: value }));
-                  console.log(value);
                 }}
                 placeholder={"Select"}
                 className={
                   "w-[500px] border-0 focus-visible:ring-0 mt-2  bg-white rounded-md "
                 }
+              />
+            </div>
+            <div>
+              <AddTransport
+                open={openAddTransport}
+                setOpen={setOpenAddTransport}
               />
             </div>
           </div>

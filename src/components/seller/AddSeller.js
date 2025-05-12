@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { fetchBuyer } from "@/store/slices/buyerSlice";
+import { fetchSeller } from "@/store/slices/sellerSlice";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -48,7 +49,7 @@ export function AddSeller({
       if (response.data.success) {
         toast.success(response.data.message);
         setSeller({ id: "", name: "", mobileNumber: "" }); // Reset input
-        dispatch(fetchBuyer());
+        dispatch(fetchSeller());
         setOpen(false);
       } else {
         toast.error(response.data.message);

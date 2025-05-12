@@ -23,7 +23,7 @@ export function AddTransport({
   setSelectedTransport,
   setFetchData,
 }) {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   const [transport, setCategory] = useState({
     id: selectedTransport?._id || "",
     transport: selectedTransport?.transport || "",
@@ -45,8 +45,8 @@ export function AddTransport({
         toast.success("Transport Updated successfully!");
       else toast.success("Transport Added successfully!");
       setCategory({ id: "", name: "" }); // Reset input
-      setSelectedTransport({});
-      dispatch(fetchTransport())
+      if (transport?._id) setSelectedTransport({});
+      dispatch(fetchTransport());
       setOpen(false);
     } catch (error) {
       console.error("Error saving transport:", error);
@@ -60,7 +60,7 @@ export function AddTransport({
     <Dialog open={open} onOpenChange={setOpen}>
       <div className="w-full flex justify-end">
         <DialogTrigger asChild>
-          <Button variant="outline" className="bg-buttonBg text-white">
+          <Button className=" bg-button-gradient text-white">
             Add Transport
           </Button>
         </DialogTrigger>

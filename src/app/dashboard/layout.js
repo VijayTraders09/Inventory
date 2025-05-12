@@ -10,6 +10,7 @@ import ThemeProvider from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import logo from "../../../public/assets/Logo.png";
 import Header from "@/components/header";
+import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,8 @@ export default function RootLayout({ children }) {
       enableSystem
       disableTransitionOnChange
     >
+              <ToastContainer position="top-right" autoClose={3000} />
+
       <SidebarProvider>
         <AppSidebar logo={logo} />
         <div className=" w-full">

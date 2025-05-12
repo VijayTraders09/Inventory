@@ -35,7 +35,7 @@ export async function POST(req) {
 
     if (!sellerName) {
       return NextResponse.json({
-        message: "Seller Name required",
+        message: "Purchaser Name required",
         status: 400,
       });
     }
@@ -55,12 +55,12 @@ export async function POST(req) {
 
     if (id) {
       await Seller.findByIdAndUpdate(id, { sellerName, mobileNumber });
-      return NextResponse.json({ message: "Seller Updated" }, { status: 200 });
+      return NextResponse.json({ message: "Purchaser Updated" }, { status: 200 });
     }
     const newSeller = new Seller({ sellerName, mobileNumber });
     await newSeller.save();
     return NextResponse.json(
-      { data: newSeller, success: true, message: "Seller Created" },
+      { data: newSeller, success: true, message: "Purchaser Created" },
       { status: 200 }
     );
   } catch (error) {
