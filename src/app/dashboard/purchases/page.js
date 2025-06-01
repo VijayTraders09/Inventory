@@ -11,6 +11,7 @@ import {
 import { fetchPurchases } from "@/store/slices/purchaseSlice";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -20,6 +21,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function Orders() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
+  const navigate = useRouter();
 
   const dispatch = useDispatch();
   const { purchases, loading, error, fetched } = useSelector(
@@ -50,6 +52,22 @@ export default function Orders() {
       </Button>
     );
   };
+
+  const Edit = ({ data }) => {
+    return (
+      <Button
+        variant="outline"
+        className="bg-buttonBg text-white"
+        onClick={() => {
+          navigate.push("/add-purchase?data="+JSON.stringify(data));
+        }}
+        // onClick={setOpen(true)}
+      >
+        Edit
+      </Button>
+    );
+  };
+
 
   const columnDefs = [
     {
@@ -87,11 +105,40 @@ export default function Orders() {
       flex: 1,
     },
     {
+      headerName: "Date",
+      field: "createdAt", // Make sure this matches your field name
+      sortable: true,
+      filter: "agDateColumnFilter",
+      valueGetter: ({ data }) =>
+        data?.createdAt ? new Date(data.createdAt) : null,
+      valueFormatter: ({ value }) => {
+        if (value) {
+          const date = new Date(value);
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`; // Format as dd/mm/yyyy
+        }
+        return "";
+      },
+      comparator: (date1, date2) => {
+        return date1.getTime() - date2.getTime();
+      },
+      flex: 1,
+    },
+  
+    {
       headerName: "Items",
       field: "items",
       sortable: true,
       filter: true,
       cellRenderer: SeeItems,
+      flex: 1,
+    },
+      {
+      headerName: "Edit",
+      field: "items",
+      cellRenderer: Edit,
       flex: 1,
     },
   ];

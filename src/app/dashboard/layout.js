@@ -35,7 +35,7 @@ export default function RootLayout({ children }) {
       enableSystem
       disableTransitionOnChange
     >
-              <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={3000} />
 
       <SidebarProvider>
         <AppSidebar logo={logo} />

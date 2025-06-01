@@ -12,6 +12,7 @@ import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
 import { fetchTransport } from "@/store/slices/transportSlice";
 import axios from "axios";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -26,6 +27,12 @@ const initialState = {
 };
 export default function Home() {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
+  const navigate = useRouter();
+
+  const data = searchParams.get("data")
+    ? JSON.parse(searchParams.get("data"))
+    : {};
 
   const { buyers, fetched: fetchBuyerData } = useSelector(
     (state) => state.buyers
@@ -124,11 +131,13 @@ export default function Home() {
         godownId: sale.goddown, // ID of the godown where the product is stored
         modeOfTransport: sale.modeOfTransport, // Mode of transport
         remark: sale.remark, // Additional remarks
+        id: sale?.id,
       });
       if (response.data.success) {
         setSale(initialState);
         setItems([]);
         toast.success(response.data.message);
+        if (data?._id) navigate.replace("/dashboard/sells");
       } else {
         toast.error(response.data.message);
       }
@@ -147,10 +156,28 @@ export default function Home() {
     if (!fetchcategoryData) dispatch(fetchCategories());
     if (!fetchTransportData) dispatch(fetchTransport());
     dispatch(fetchProductsByCategory(""));
+    if (data?._id) {
+      let editItems = data?.items?.map((row) => ({
+        godownId: row?.godownId?._id,
+        categoryId: row?.categoryId,
+        productId: row?.productId?._id,
+        productName: row?.productId?.productName,
+        categoryName: row?.categoryId?.categoryName,
+        goddownName: row?.godownId?.goddownName,
+        quantity: row?.quantity,
+      }));
+      setItems(editItems);
+      setSale((prev) => ({
+        ...prev,
+        id: data?._id,
+        customer: data?.buyerId?._id,
+        remark: data?.remark,
+        invoice: data?.invoiceNumber,
+        items: editItems,
+        modeOfTransport: data?.modeOfTransport,
+      }));
+    }
   }, []);
-
-  // console.clear();
-  console.log(sale);
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">

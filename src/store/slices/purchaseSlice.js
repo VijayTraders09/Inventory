@@ -25,6 +25,9 @@ const purchaseSlice = createSlice({
   reducers: {
     updatePurchase: (state, action) => {
       state.purchases = action.payload.data;
+    },
+    updatePurchaseFetched: (state, action) => {
+      state.fetched = action.payload.data;
     }
   },
   extraReducers: (builder) => {
@@ -45,5 +48,5 @@ const purchaseSlice = createSlice({
   }
 });
 
-export const { updatePurchase } = purchaseSlice.actions;
+export const { updatePurchase ,updatePurchaseFetched} = purchaseSlice.actions;
 export default purchaseSlice.reducer;

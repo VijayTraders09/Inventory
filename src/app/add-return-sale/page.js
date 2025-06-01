@@ -11,9 +11,11 @@ import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
+import { updateSalePurchasesFetched } from "@/store/slices/returnSaleSlice";
 import { fetchTransport } from "@/store/slices/transportSlice";
 import axios from "axios";
 import { addDoc, collection } from "firebase/firestore";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -27,7 +29,6 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
- 
   const [items, setItems] = useState([]);
   const [item, setItem] = useState({
     categoryId: 0,
@@ -35,9 +36,15 @@ export default function Home() {
     quantity: 0,
   });
 
-  const [sale, setSale] = useState(initialState);
-    const [openAddTransport, setOpenAddTransport] = useState(false);
+   const searchParams = useSearchParams();
+    const navigate = useRouter();
 
+   const data = searchParams.get("data")
+    ? JSON.parse(searchParams.get("data"))
+    : {};
+
+  const [sale, setSale] = useState(initialState);
+  const [openAddTransport, setOpenAddTransport] = useState(false);
 
   const onChange = (value, name) => {
     setItem((prev) => ({ ...prev, [name]: value }));
@@ -93,11 +100,14 @@ export default function Home() {
         godownId: sale.goddown, // ID of the godown where the product is stored
         modeOfTransport: sale.modeOfTransport, // Mode of transport
         remark: sale.remark, // Additional remarks
+        id:sale?.id
       });
       if (response.data.success) {
         setSale(initialState);
         setItems([]);
         toast.success(response.data.message);
+        dispatch(updateSalePurchasesFetched(false))
+        if (data?._id) navigate.replace("/dashboard/return-sale");
       } else {
         toast.error(response.data.message);
       }
@@ -125,21 +135,42 @@ export default function Home() {
     (state) => state.products
   );
 
-  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
-    (state) => state.transports
-  );
+  const {
+    transports,
+    loading,
+    error,
+    fetched: fetchTransportData,
+  } = useSelector((state) => state.transports);
 
-
-  const data = useSelector((state) => state.buyers);
   const [openCustomer, setOpenCustomer] = useState(false);
 
   useEffect(() => {
     if (!fetchBuyerData) dispatch(fetchBuyer());
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
-        if (!fetchTransportData) dispatch(fetchTransport());
-    
+    if (!fetchTransportData) dispatch(fetchTransport());
     dispatch(fetchProductsByCategory(""));
+       if (data?._id) {
+      let editItems = data?.items?.map((row) => ({
+        godownId: row?.godownId?._id,
+        categoryId: row?.categoryId,
+        productId: row?.productId?._id,
+        productName: row?.productId?.productName,
+        categoryName: row?.categoryId?.categoryName,
+        goddownName: row?.godownId?.goddownName,
+        quantity: row?.quantity,
+      }));
+      setItems(editItems);
+      setSale((prev) => ({
+        ...prev,
+        id: data?._id,
+        customer: data?.buyerId?._id,
+        remark: data?.remark,
+        invoice: data?.invoiceNumber,
+        items: editItems,
+        modeOfTransport: data?.modeOfTransport,
+      }));
+    }
   }, []);
 
   // console.clear();
@@ -157,7 +188,9 @@ export default function Home() {
       </div>
       <div className="w-[calc(100vw-16rem)] p-8 bg-gray-300 rounded-xl mt-4 shadow-xl">
         <div className="w-full flex items-center justify-between pb-2 border-b-2 border-b-grey">
-          <h3 className="text-xl font-medium">Your Requirements ( Sale Return )</h3>
+          <h3 className="text-xl font-medium">
+            Your Requirements ( Sale Return )
+          </h3>
           {/* <Button
             className=" bg-button-gradient"
             onClick={() => setOpenCustomer(true)}
@@ -298,7 +331,7 @@ export default function Home() {
           ) : (
             ""
           )}
-           <div className="flex items-end gap-2 w-full">
+          <div className="flex items-end gap-2 w-full">
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown

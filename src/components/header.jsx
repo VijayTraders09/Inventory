@@ -21,7 +21,6 @@ const Header = ({ SidebarTrigger, ModeToggle }) => {
       <div className="h-[50px] flex justify-between items-center gap-4 px-2">
         <Bell className="text-primaryGrey" size={20}/>
         <UserCircle className="text-primaryGrey" size={30}/>
-        <ModeToggle />
       </div>
     </div>
   );

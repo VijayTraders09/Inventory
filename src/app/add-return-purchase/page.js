@@ -18,6 +18,8 @@ import { toast } from "react-toastify";
 import { fetchSeller } from "@/store/slices/sellerSlice";
 import { fetchTransport } from "@/store/slices/transportSlice";
 import { AddTransport } from "@/components/transport/AddTransport";
+import { updateReturnPurchasesFetched } from "@/store/slices/returnPurchaseSlice";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const initialState = {
   seller: 0,
@@ -34,6 +36,13 @@ export default function Home() {
     productId: 0,
     quantity: 0,
   });
+
+    const searchParams = useSearchParams();
+      const navigate = useRouter();
+    
+      const data = searchParams.get("data")
+        ? JSON.parse(searchParams.get("data"))
+        : {};
 
   const [purchase, setPurchase] = useState(initialState);
     const [openAddTransport, setOpenAddTransport] = useState(false);
@@ -93,11 +102,14 @@ export default function Home() {
         // godownId: purchase.goddown, // ID of the godown where the product is stored
         modeOfTransport: purchase.modeOfTransport, // Mode of transport
         remark: purchase.remark, // Additional remarks
+        id:purchase?.id
       });
       if (response.data.success) {
         setPurchase(initialState);
         setItems([]);
         toast.success(response.data.message);
+        dispatch(updateReturnPurchasesFetched(false))
+                if (data?._id) navigate.replace("/dashboard/return-purchases");
       } else {
         toast.error(response.data.message);
       }
@@ -128,8 +140,6 @@ export default function Home() {
     (state) => state.transports
   );
 
-
-  const data = useSelector((state) => state.sellers);
   const [openSeller, setOpenSeller] = useState(false);
 
   useEffect(() => {
@@ -137,8 +147,28 @@ export default function Home() {
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
         if (!fetchTransportData) dispatch(fetchTransport());
-
     dispatch(fetchProductsByCategory(""));
+    if (data?._id) {
+      let editItems = data?.items?.map((row) => ({
+        godownId: row?.godownId?._id,
+        categoryId: row?.categoryId,
+        productId: row?.productId?._id,
+        productName: row?.productId?.productName,
+        categoryName: row?.categoryId?.categoryName,
+        goddownName: row?.godownId?.goddownName,
+        quantity: row?.quantity,
+      }));
+      setItems(editItems)
+      setPurchase((prev) => ({
+        ...prev,
+        id:data?._id,
+        seller: data?.sellerId?._id,
+        remark: data?.remark,
+        invoice: data?.invoiceNumber,
+        items:editItems,
+        modeOfTransport: data?.modeOfTransport,
+      }));
+    }
   }, []);
 
   console.log(items)

@@ -19,7 +19,8 @@ export async function GET() {
       })
       .populate({
         path: "items.godownId", // Populate category details inside items array
-      });
+      })
+      .sort({ createdAt: -1 });
     return NextResponse.json(
       {
         data: purchasereturn,
@@ -37,66 +38,112 @@ export async function GET() {
   }
 }
 
-
 export async function POST(req) {
   try {
     await connect();
-    const {
-      invoiceNumber,
-      sellerId,
-      items,
-      id,
-      modeOfTransport,
-      remark,
-    } = await req.json();
 
-    // Validate the input
-    if (
-      ( !sellerId || !items || items.length === 0,
-      !modeOfTransport)
-    ) {
-      return NextResponse.json({
-        message: "Invoice Number, Seller ID, and Items are required",
-        status: 400,
-      });
+    const { invoiceNumber, sellerId, items, id, modeOfTransport, remark } =
+      await req.json();
+
+    if (!sellerId || !items || items.length === 0 || !modeOfTransport) {
+      return NextResponse.json(
+        {
+          message:
+            "Invoice Number, Seller ID, Items, and Mode of Transport are required",
+        },
+        { status: 400 }
+      );
     }
 
-    // Handle Create: Create a new sale
-    const newReturnPurchases = new PurchaseReturn({ invoiceNumber, sellerId, items,modeOfTransport ,remark});
-    await newReturnPurchases.save();
+    let purchaseReturn;
 
-    // Loop through the items to update the products and godown
+    if (id) {
+      // -------- Handle Update --------
+      purchaseReturn = await PurchaseReturn.findById(id);
+
+      if (!purchaseReturn) {
+        return NextResponse.json(
+          { message: "Purchase Return not found" },
+          { status: 404 }
+        );
+      }
+
+      // Reverse previous stock changes
+      for (let oldItem of purchaseReturn.items) {
+        const product = await Product.findById(oldItem.productId);
+        const godown = await Goddown.findById(oldItem.godownId);
+
+        if (product) {
+          const idx = product.quantity.findIndex(
+            (entry) => entry.godownId.toString() === godown._id.toString()
+          );
+          if (idx !== -1) {
+            product.quantity[idx].quantity += oldItem.quantity; // reverse subtraction
+          }
+          await product.save();
+        }
+
+        if (godown) {
+          const idx = godown.stock.findIndex(
+            (entry) =>
+              entry.productId.toString() === oldItem.productId.toString()
+          );
+          if (idx !== -1) {
+            godown.stock[idx].quantity += oldItem.quantity; // reverse subtraction
+          }
+          await godown.save();
+        }
+      }
+
+      // Update Purchase Return record
+      purchaseReturn.invoiceNumber = invoiceNumber;
+      purchaseReturn.sellerId = sellerId;
+      purchaseReturn.items = items;
+      purchaseReturn.modeOfTransport = modeOfTransport;
+      purchaseReturn.remark = remark;
+      await purchaseReturn.save();
+    } else {
+      // -------- Handle Create --------
+      purchaseReturn = new PurchaseReturn({
+        invoiceNumber,
+        sellerId,
+        items,
+        modeOfTransport,
+        remark,
+      });
+      await purchaseReturn.save();
+    }
+
+    // -------- Update Inventory (Apply New) --------
     for (let item of items) {
       const product = await Product.findById(item.productId);
-      const godown = await Goddown.findById(item?.godownId);
-      
-      // Update the quantity in the product
+      const godown = await Goddown.findById(item.godownId);
+
       if (product) {
-        const quantityIndex = product.quantity.findIndex(
+        const idx = product.quantity.findIndex(
           (entry) => entry.godownId.toString() === godown._id.toString()
         );
-        if (quantityIndex !== -1) {
-          product.quantity[quantityIndex].quantity -= item.quantity;
+        if (idx !== -1) {
+          product.quantity[idx].quantity -= item.quantity;
         } else {
           product.quantity.push({
             godownId: godown._id,
-            quantity: item.quantity,
+            quantity: -item.quantity,
           });
         }
         await product.save();
       }
 
-      // Update godown stock
       if (godown) {
-        const godownStock = godown.stock.findIndex(
+        const idx = godown.stock.findIndex(
           (entry) => entry.productId.toString() === item.productId.toString()
         );
-        if (godownStock !== -1) {
-          godown.stock[godownStock].quantity -= item.quantity;
+        if (idx !== -1) {
+          godown.stock[idx].quantity -= item.quantity;
         } else {
           godown.stock.push({
             productId: item.productId,
-            quantity: item.quantity,
+            quantity: -item.quantity,
           });
         }
         await godown.save();
@@ -104,13 +151,21 @@ export async function POST(req) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Purchase Return Created", data: newReturnPurchases },
-      { status: 201 }
+      {
+        success: true,
+        message: id ? "Purchase Return Updated" : "Purchase Return Created",
+        data: purchaseReturn,
+      },
+      { status: id ? 200 : 201 }
     );
   } catch (error) {
-    console.error("Error handling sale:", error);
+    console.error("Error handling purchase return:", error);
     return NextResponse.json(
-      { success: false, message: "Error handling sale", error: error.message },
+      {
+        success: false,
+        message: "Error handling purchase return",
+        error: error.message,
+      },
       { status: 500 }
     );
   }

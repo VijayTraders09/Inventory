@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import ItemsTable from "@/components/items-table/ItemsTable";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSells } from "@/store/slices/sellSlice";
+import { useRouter } from "next/navigation";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -24,6 +25,7 @@ export default function SalesTable({ selectedBuyer }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
 
+  const navigate = useRouter();
   const dispatch = useDispatch();
   const { sells, loading, error, fetched } = useSelector(
     (state) => state.sells
@@ -51,6 +53,20 @@ export default function SalesTable({ selectedBuyer }) {
         // onClick={setOpen(true)}
       >
         See Items
+      </Button>
+    );
+  };
+  const Edit = ({ data }) => {
+    return (
+      <Button
+        variant="outline"
+        className="bg-buttonBg text-white"
+        onClick={() => {
+          navigate.push("/add-sale?data="+JSON.stringify(data));
+        }}
+        // onClick={setOpen(true)}
+      >
+        Edit
       </Button>
     );
   };
@@ -118,6 +134,12 @@ export default function SalesTable({ selectedBuyer }) {
       sortable: true,
       filter: true,
       cellRenderer: SeeItems,
+      flex: 1,
+    },
+    {
+      headerName: "Edit",
+      field: "items",
+      cellRenderer: Edit,
       flex: 1,
     },
   ];
