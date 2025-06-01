@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "@/store/provider";
 import { ToastContainer } from "react-toastify";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Create Next App",
@@ -18,7 +19,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body className="bg-bgGrey">
-        <ReduxProvider>{children}</ReduxProvider>
+        <Suspense fallback={<div>Loading...</div>}>
+          <ReduxProvider>{children}</ReduxProvider>
+        </Suspense>
       </body>
     </html>
   );
