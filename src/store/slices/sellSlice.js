@@ -26,6 +26,9 @@ const sellSlice = createSlice({
     updateSell: (state, action) => {
       state.sells = action.payload.data;
     },
+    updateSellFetched: (state, action) => {
+      state.fetched = action.payload.data;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -45,5 +48,5 @@ const sellSlice = createSlice({
   },
 });
 
-export const { updateSell } = sellSlice.actions;
+export const { updateSell ,updateSellFetched} = sellSlice.actions;
 export default sellSlice.reducer;

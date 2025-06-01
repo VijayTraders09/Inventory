@@ -20,6 +20,7 @@ export async function GET() {
       .populate({
         path: "items.godownId", // Populate category details inside items array
       })
+      .sort({ createdAt: -1 });
     return NextResponse.json(
       {
         data: sales,
@@ -37,7 +38,6 @@ export async function GET() {
   }
 }
 
-
 export async function POST(req) {
   try {
     await connect();
@@ -51,53 +51,106 @@ export async function POST(req) {
       saleInvoice,
     } = await req.json();
 
-    // Validate the input
-    if (
-      (!buyerId || !items || items.length === 0,
-      !modeOfTransport)
-    ) {
-      return NextResponse.json({
-        message: "Invoice Number, Seller ID, and Items are required",
-        status: 400,
-      });
+    if (!buyerId || !items || items.length === 0 || !modeOfTransport) {
+      return NextResponse.json(
+        {
+          message:
+            "Invoice Number, Buyer ID, Items, and Mode of Transport are required",
+        },
+        { status: 400 }
+      );
     }
 
-    // Handle Create: Create a new sale
-    const newSale = new SaleReturn({ invoiceNumber, buyerId, items,modeOfTransport ,saleInvoice,remark});
-    await newSale.save();
+    let saleReturn;
 
-    // Loop through the items to update the products and godown
+    if (id) {
+      // ---------- UPDATE ----------
+      saleReturn = await SaleReturn.findById(id);
+      if (!saleReturn) {
+        return NextResponse.json(
+          { message: "Sale Return not found" },
+          { status: 404 }
+        );
+      }
+
+      // Reverse previous stock changes
+      for (let oldItem of saleReturn.items) {
+        const product = await Product.findById(oldItem.productId);
+        const godown = await Goddown.findById(oldItem.godownId);
+
+        if (product) {
+          const idx = product.quantity.findIndex(
+            (entry) => entry.godownId.toString() === godown._id.toString()
+          );
+          if (idx !== -1) {
+            product.quantity[idx].quantity += oldItem.quantity;
+          }
+          await product.save();
+        }
+
+        if (godown) {
+          const idx = godown.stock.findIndex(
+            (entry) =>
+              entry.productId.toString() === oldItem.productId.toString()
+          );
+          if (idx !== -1) {
+            godown.stock[idx].quantity += oldItem.quantity;
+          }
+          await godown.save();
+        }
+      }
+
+      // Update sale return record
+      saleReturn.invoiceNumber = invoiceNumber;
+      saleReturn.buyerId = buyerId;
+      saleReturn.items = items;
+      saleReturn.modeOfTransport = modeOfTransport;
+      saleReturn.remark = remark;
+      saleReturn.saleInvoice = saleInvoice;
+      await saleReturn.save();
+    } else {
+      // ---------- CREATE ----------
+      saleReturn = new SaleReturn({
+        invoiceNumber,
+        buyerId,
+        items,
+        modeOfTransport,
+        remark,
+        saleInvoice,
+      });
+      await saleReturn.save();
+    }
+
+    // ---------- APPLY NEW STOCK CHANGES ----------
     for (let item of items) {
       const product = await Product.findById(item.productId);
       const godown = await Goddown.findById(item.godownId);
-      
-      // Update the quantity in the product
+
       if (product) {
-        const quantityIndex = product.quantity.findIndex(
+        const idx = product.quantity.findIndex(
           (entry) => entry.godownId.toString() === godown._id.toString()
         );
-        if (quantityIndex !== -1) {
-          product.quantity[quantityIndex].quantity -= item.quantity;
+        if (idx !== -1) {
+          product.quantity[idx].quantity -= item.quantity;
         } else {
           product.quantity.push({
             godownId: godown._id,
-            quantity: item.quantity,
+            quantity: -item.quantity,
           });
         }
         await product.save();
       }
 
-      // Update godown stock
       if (godown) {
-        const godownStock = godown.stock.findIndex(
+        const idx = godown.stock.findIndex(
           (entry) => entry.productId.toString() === item.productId.toString()
         );
-        if (godownStock !== -1) {
-          godown.stock[godownStock].quantity -= item.quantity;
+        if (idx !== -1) {
+          godown.stock[idx].quantity -= item.quantity;
         } else {
           godown.stock.push({
             productId: item.productId,
-            quantity: item.quantity,
+            quantity: -item.quantity,
           });
         }
         await godown.save();
@@ -105,13 +158,21 @@ export async function POST(req) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Sale Return Created", data: newSale },
-      { status: 201 }
+      {
+        success: true,
+        message: id ? "Sale Return Updated" : "Sale Return Created",
+        data: saleReturn,
+      },
+      { status: id ? 200 : 201 }
     );
   } catch (error) {
-    console.error("Error handling sale:", error);
+    console.error("Error handling sale return:", error);
     return NextResponse.json(
-      { success: false, message: "Error handling sale", error: error.message },
+      {
+        success: false,
+        message: "Error handling sale return",
+        error: error.message,
+      },
       { status: 500 }
     );
   }

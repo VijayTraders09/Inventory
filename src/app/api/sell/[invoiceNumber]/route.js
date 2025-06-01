@@ -18,7 +18,7 @@ export async function GET(req, { params }) {
       })
       .populate({
         path: "items.categoryId", // Populate category details inside items array
-      });
+      }).sort({ createdAt: -1 });
     if (sale?.length)
       return NextResponse.json(
         {

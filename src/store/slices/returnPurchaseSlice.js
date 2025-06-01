@@ -25,6 +25,9 @@ const returnPurchaseSlice = createSlice({
   reducers: {
     updateReturnPurchases: (state, action) => {
       state.returnPurchases = action.payload.data;
+    },
+    updateReturnPurchasesFetched: (state, action) => {
+      state.fetched = action.payload.data;
     }
   },
   extraReducers: (builder) => {
@@ -45,5 +48,5 @@ const returnPurchaseSlice = createSlice({
   }
 });
 
-export const { updateReturnPurchases } = returnPurchaseSlice.actions;
+export const { updateReturnPurchases ,updateReturnPurchasesFetched} = returnPurchaseSlice.actions;
 export default returnPurchaseSlice.reducer;

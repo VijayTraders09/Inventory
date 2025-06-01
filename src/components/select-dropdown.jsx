@@ -1,18 +1,8 @@
 "use client";
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 
 import { Check, ChevronsUpDown } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -27,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 function SelectDropdown({
   list = [],
@@ -65,10 +56,11 @@ function SelectDropdown({
               {list.map((option) => (
                 <CommandItem
                   key={option.id}
-                  value={option.id}
+                  value={option.name.toLowerCase()}
                   onSelect={(currentValue) => {
-                    console.log("currentValue", option);
-                    onChange(currentValue === value ? "" : currentValue);
+                    console.clear()
+                    console.log("currentValue", option,currentValue);
+                    onChange(option.id === value ? "" : option.id);
                     setOpen(false);
                   }}
                 >

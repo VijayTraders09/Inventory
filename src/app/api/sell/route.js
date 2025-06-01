@@ -23,7 +23,7 @@ export async function GET(req) {
         })
         .populate({
           path: "items.godownId", // Populate godownId details inside items array
-        });
+        }).sort({ createdAt: -1 });
     } else {
       sales = await Sales.find({})
         .populate("buyerId") // Populate buyer details
@@ -35,7 +35,7 @@ export async function GET(req) {
         })
         .populate({
           path: "items.godownId", // Populate godownId details inside items array
-        });
+        }).sort({ createdAt: -1 });
     }
     return NextResponse.json(
       {
@@ -57,68 +57,104 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     await connect();
-    console.log("dvd");
-    const { invoiceNumber, buyerId, items, id, modeOfTransport, remark } =
-      await req.json();
 
-    // Validate the input
-    if ((!buyerId || !items || items.length === 0, !modeOfTransport)) {
-      return NextResponse.json({
-        message: "Invoice Number, Buyer ID, and Items are required",
-        status: 400,
-      });
+    const { invoiceNumber, buyerId, items, id, modeOfTransport, remark } = await req.json();
+
+    if (!buyerId || !items || items.length === 0 || !modeOfTransport) {
+      return NextResponse.json(
+        { message: "Buyer ID, items, and mode of transport are required", status: 400 },
+        { status: 400 }
+      );
     }
 
-    // Handle Create: Create a new sale
-    const newSale = new Sales({
-      invoiceNumber,
-      buyerId,
-      items,
-      modeOfTransport,
-    });
-    await newSale.save();
+    let sale;
 
-    // Loop through the items to update the products and godown
+    if (id) {
+      // ----------- 1. Handle Update -----------
+      sale = await Sales.findById(id)
+
+      if (!sale) {
+        return NextResponse.json({ message: "Sale not found", status: 404 }, { status: 404 });
+      }
+
+      // Roll back previous item stock
+      for (let oldItem of sale.items) {
+        const product = await Product.findById(oldItem.productId);
+        const godown = await Goddown.findById(oldItem.godownId);
+
+        if (product) {
+          const idx = product.quantity.findIndex(
+            (entry) => entry.godownId.toString() === godown._id.toString()
+          );
+          if (idx !== -1) {
+            product.quantity[idx].quantity += oldItem.quantity; // Roll back
+          }
+          await product.save();
+        }
+
+        if (godown) {
+          const idx = godown.stock.findIndex(
+            (entry) => entry.productId.toString() === oldItem.productId.toString()
+          );
+          if (idx !== -1) {
+            godown.stock[idx].quantity += oldItem.quantity;
+          }
+          await godown.save();
+        }
+      }
+
+      // Update Sale
+      sale.invoiceNumber = invoiceNumber;
+      sale.buyerId = buyerId;
+      sale.items = items;
+      sale.modeOfTransport = modeOfTransport;
+      sale.remark = remark;
+      await sale.save();
+    } else {
+      // ----------- 2. Handle Create -----------
+      sale = new Sales({
+        invoiceNumber,
+        buyerId,
+        items,
+        modeOfTransport,
+        remark,
+      });
+      await sale.save();
+    }
+
+    // ----------- 3. Update Inventory -----------
     for (let item of items) {
       const product = await Product.findById(item.productId);
-      const godown = await Goddown.findById(item?.godownId);
+      const godown = await Goddown.findById(item.godownId);
 
-      // Update the quantity in the product
       if (product) {
-        const quantityIndex = product.quantity.findIndex(
+        const idx = product.quantity.findIndex(
           (entry) => entry.godownId.toString() === godown._id.toString()
         );
-        if (quantityIndex !== -1) {
-          product.quantity[quantityIndex].quantity -= item.quantity;
+        if (idx !== -1) {
+          product.quantity[idx].quantity -= item.quantity;
         } else {
-          product.quantity.push({
-            godownId: godown._id,
-            quantity: item.quantity,
-          });
+          product.quantity.push({ godownId: godown._id, quantity: -item.quantity });
         }
         await product.save();
       }
 
-      // Update godown stock
       if (godown) {
-        const godownStock = godown.stock.findIndex(
+        const idx = godown.stock.findIndex(
           (entry) => entry.productId.toString() === item.productId.toString()
         );
-        if (godownStock !== -1) {
-          godown.stock[godownStock].quantity -= item.quantity;
+        if (idx !== -1) {
+          godown.stock[idx].quantity -= item.quantity;
         } else {
-          godown.stock.push({
-            productId: item.productId,
-            quantity: item.quantity,
-          });
+          godown.stock.push({ productId: item.productId, quantity: -item.quantity });
         }
         await godown.save();
       }
     }
 
     return NextResponse.json(
-      { success: true, message: "Sale Created", data: newSale },
-      { status: 201 }
+      { success: true, message: id ? "Sale updated" : "Sale created", data: sale },
+      { status: id ? 200 : 201 }
     );
   } catch (error) {
     console.error("Error handling sale:", error);

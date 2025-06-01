@@ -18,6 +18,8 @@ import { toast } from "react-toastify";
 import { fetchSeller } from "@/store/slices/sellerSlice";
 import { fetchTransport } from "@/store/slices/transportSlice";
 import { AddTransport } from "@/components/transport/AddTransport";
+import { useRouter, useSearchParams } from "next/navigation";
+import { updatePurchaseFetched } from "@/store/slices/purchaseSlice";
 
 const initialState = {
   seller: 0,
@@ -27,7 +29,6 @@ const initialState = {
   remark: "",
 };
 export default function Home() {
-
   const [items, setItems] = useState([]);
   const [item, setItem] = useState({
     categoryId: 0,
@@ -35,9 +36,15 @@ export default function Home() {
     quantity: 0,
   });
 
-  const [purchase, setPurchase] = useState(initialState);
-    const [openAddTransport, setOpenAddTransport] = useState(false);
+   const searchParams = useSearchParams();
+    const navigate = useRouter();
+  
+    const data = searchParams.get("data")
+      ? JSON.parse(searchParams.get("data"))
+      : {};
 
+  const [purchase, setPurchase] = useState(initialState);
+  const [openAddTransport, setOpenAddTransport] = useState(false);
 
   const onChange = (value, name) => {
     setItem((prev) => ({ ...prev, [name]: value }));
@@ -84,20 +91,22 @@ export default function Home() {
       toast.error("mode of transport is required");
       return;
     }
-    
+
     try {
       const response = await axios.post("/api/purchase", {
         invoiceNumber: purchase.invoice,
         sellerId: purchase.seller, // ID of the seller
         items: items,
-        // godownId: purchase.goddown, // ID of the godown where the product is stored
         modeOfTransport: purchase.modeOfTransport, // Mode of transport
         remark: purchase.remark, // Additional remarks
+        id:purchase.id
       });
       if (response.data.success) {
         setPurchase(initialState);
         setItems([]);
         toast.success(response.data.message);
+        dispatch(updatePurchaseFetched(false))
+        if (data?._id) navigate.replace("/dashboard/purchases");
       } else {
         toast.error(response.data.message);
       }
@@ -124,24 +133,45 @@ export default function Home() {
   const { products, fetched: fetchProductData } = useSelector(
     (state) => state.products
   );
-  const { transports, loading, error, fetched:fetchTransportData } = useSelector(
-    (state) => state.transports
-  );
+  const {
+    transports,
+    loading,
+    error,
+    fetched: fetchTransportData,
+  } = useSelector((state) => state.transports);
 
-
-  const data = useSelector((state) => state.sellers);
   const [openSeller, setOpenSeller] = useState(false);
 
   useEffect(() => {
     if (!fetchBuyerData) dispatch(fetchSeller());
     if (!fetchGoddownsData) dispatch(fetchGoddowns());
     if (!fetchcategoryData) dispatch(fetchCategories());
-        if (!fetchTransportData) dispatch(fetchTransport());
-
+    if (!fetchTransportData) dispatch(fetchTransport());
     dispatch(fetchProductsByCategory(""));
+    if (data?._id) {
+      let editItems = data?.items?.map((row) => ({
+        godownId: row?.godownId?._id,
+        categoryId: row?.categoryId,
+        productId: row?.productId?._id,
+        productName: row?.productId?.productName,
+        categoryName: row?.categoryId?.categoryName,
+        goddownName: row?.godownId?.goddownName,
+        quantity: row?.quantity,
+      }));
+      setItems(editItems)
+      setPurchase((prev) => ({
+        ...prev,
+        id:data?._id,
+        seller: data?.sellerId?._id,
+        remark: data?.remark,
+        invoice: data?.invoiceNumber,
+        items:editItems,
+        modeOfTransport: data?.modeOfTransport,
+      }));
+    }
   }, []);
 
-  console.log(items)
+  console.log(items);
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">
@@ -298,7 +328,7 @@ export default function Home() {
           ) : (
             ""
           )}
-           <div className="flex items-end gap-2 w-full">
+          <div className="flex items-end gap-2 w-full">
             <div>
               <p>Mode of Transport</p>
               <SelectDropdown
