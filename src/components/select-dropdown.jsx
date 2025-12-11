@@ -58,8 +58,6 @@ function SelectDropdown({
                   key={option.id}
                   value={option.name.toLowerCase()}
                   onSelect={(currentValue) => {
-                    console.clear()
-                    console.log("currentValue", option,currentValue);
                     onChange(option.id === value ? "" : option.id);
                     setOpen(false);
                   }}

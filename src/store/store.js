@@ -11,6 +11,7 @@ import purchaseReducer from "./slices/purchaseSlice";
 import returnSaleReducer from "./slices/returnSaleSlice";
 import returnPurchaseReducer from "./slices/returnPurchaseSlice";
 import transportReducer from "./slices/transportSlice";
+import productsByGoddownReducer from "./slices/productsByGoddown";
 
 export const store = configureStore({
   reducer: {
@@ -25,5 +26,6 @@ export const store = configureStore({
     returnPurchases: returnPurchaseReducer,
     returnSales: returnSaleReducer,
     transports: transportReducer,
+    productsByGoddown: productsByGoddownReducer,
   },
 });

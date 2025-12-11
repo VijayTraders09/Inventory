@@ -78,7 +78,7 @@ const items1 = [
   },
   {
     title: "Manage Store",
-    url: "#",
+    url: "/dashboard/transfer-list",
     icon: Store,
   },
 ];

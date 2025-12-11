@@ -26,9 +26,11 @@ export default function Home() {
             <h3 className=" font-bold text-xl">Purchase</h3>
           </div>
           </Link>
+            <Link href={"/transfer-product-goddown"}>
           <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightSkyblue">
             <h3 className=" font-bold text-xl">Transfer</h3>
           </div>
+            </Link>
           <Link href={"/add-return-sale"}>
           <div className="flex justify-center items-center h-[150px] w-[200px] cursor-pointer rounded-md bg-lightOrange">
             <h3 className=" font-bold text-xl">Sale Return</h3>

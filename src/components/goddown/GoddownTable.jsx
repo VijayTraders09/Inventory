@@ -24,6 +24,32 @@ export default function GoddownTable({
     <p className="text-black dark:white">{value}</p>
   );
 
+  const exportExcel = async (data) => {
+  try {
+    const res = await fetch(`/api/goddown/${data?._id}/download`);
+
+    if (!res.ok) {
+      throw new Error("Failed to download file");
+    }
+
+    const blob = await res.blob(); // convert response into file blob
+    const url = window.URL.createObjectURL(blob);
+
+    // create a hidden <a> tag to download the file
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data?.goddownName}.xlsx`; // downloaded file name
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Download error:", err);
+  }
+};
+
+
   const EditButtonCell = ({ data }) => {
     return (
       <Button
@@ -33,6 +59,18 @@ export default function GoddownTable({
         }}
       >
         Edit
+      </Button>
+    );
+  };
+
+   const ExportButtonCell = ({ data }) => {
+    return (
+      <Button
+        onClick={() => {
+          exportExcel(data)
+        }}
+      >
+        Export Report
       </Button>
     );
   };
@@ -56,6 +94,14 @@ export default function GoddownTable({
       sortable: true,
       filter: true,
       cellRenderer: EditButtonCell,
+      flex:1
+    },
+    {
+      headerName: "Export",
+      field: "export",
+      sortable: true,
+      filter: true,
+      cellRenderer: ExportButtonCell,
       flex:1
     },
   ];
