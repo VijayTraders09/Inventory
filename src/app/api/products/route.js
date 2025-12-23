@@ -37,7 +37,6 @@ export async function POST(req) {
         { status: 200 }
       );
     }
-    console.log(quantity);
     const newProduct = new Product({
       productName: productName,
       categoryId: categoryId,
