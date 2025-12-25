@@ -39,13 +39,7 @@ export async function POST(req) {
         status: 400,
       });
     }
-    if (!isValidMobileNumber(mobileNumber)) {
-        return NextResponse.json({
-          message: "Invalid Mobile Number",
-          status: 400,
-        });
-      }
-
+   
       let isExits = await Seller.findOne({mobileNumber})
       console.log(isExits)
       if(isExits)  return NextResponse.json({

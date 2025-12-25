@@ -17,6 +17,9 @@ import ItemsTable from "@/components/items-table/ItemsTable";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSells } from "@/store/slices/sellSlice";
 import { useRouter } from "next/navigation";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -24,6 +27,9 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function SalesTable({ selectedBuyer }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const navigate = useRouter();
   const dispatch = useDispatch();
@@ -37,7 +43,6 @@ export default function SalesTable({ selectedBuyer }) {
   }, [selectedBuyer]);
 
   const CustomCell = ({ value }) => {
-    // console.log(value)
     return <p className="text-black dark:white">{value}</p>;
   };
 
@@ -50,12 +55,12 @@ export default function SalesTable({ selectedBuyer }) {
           setItems(data.items);
           setOpen(true);
         }}
-        // onClick={setOpen(true)}
       >
         See Items
       </Button>
     );
   };
+
   const Edit = ({ data }) => {
     return (
       <Button
@@ -64,11 +69,89 @@ export default function SalesTable({ selectedBuyer }) {
         onClick={() => {
           navigate.push("/add-sale?data="+JSON.stringify(data));
         }}
-        // onClick={setOpen(true)}
       >
         Edit
       </Button>
     );
+  };
+
+  const Delete = ({ data }) => {
+    return (
+      <AlertDialog open={deleteDialogOpen && saleToDelete?._id === data._id} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteDialogOpen(false);
+          setSaleToDelete(null);
+        }
+      }}>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="bg-red-500 text-white hover:bg-red-600"
+            onClick={() => {
+              setSaleToDelete(data);
+              setDeleteDialogOpen(true);
+            }}
+            disabled={isDeleting}
+          >
+            Delete
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the sale record for {data.buyerId?.buyerName} with invoice number {data.invoiceNumber}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-500 hover:bg-red-600"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteSale(data._id);
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  };
+
+  const handleDeleteSale = async (saleId) => {
+    try {
+      setIsDeleting(true);
+      
+      // Make the API call to delete the sale
+      const response = await axios.delete(`/api/sell?id=${saleId}`);
+      
+      if (response.data.success) {
+        // Show success message
+        toast.success(response.data.message || "Sale deleted successfully");
+        
+        // Close the dialog
+        setDeleteDialogOpen(false);
+        setSaleToDelete(null);
+        
+        // Refetch the sells after deletion
+        if (selectedBuyer?._id) {
+          dispatch(fetchSells(selectedBuyer._id));
+        } else {
+          dispatch(fetchSells());
+        }
+      } else {
+        // Show error message
+        toast.error(response.data.message || "Failed to delete sale");
+      }
+    } catch (error) {
+      console.error("Error deleting sale:", error);
+      toast.error(error.response?.data?.message || "Error deleting sale");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const columnDefs = [
@@ -108,7 +191,7 @@ export default function SalesTable({ selectedBuyer }) {
     },
     {
       headerName: "Date",
-      field: "createdAt", // Make sure this matches your field name
+      field: "createdAt",
       sortable: true,
       filter: "agDateColumnFilter",
       valueGetter: ({ data }) =>
@@ -117,9 +200,9 @@ export default function SalesTable({ selectedBuyer }) {
         if (value) {
           const date = new Date(value);
           const day = String(date.getDate()).padStart(2, "0");
-          const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+          const month = String(date.getMonth() + 1).padStart(2, "0");
           const year = date.getFullYear();
-          return `${day}/${month}/${year}`; // Format as dd/mm/yyyy
+          return `${day}/${month}/${year}`;
         }
         return "";
       },
@@ -138,8 +221,14 @@ export default function SalesTable({ selectedBuyer }) {
     },
     {
       headerName: "Edit",
-      field: "items",
+      field: "edit",
       cellRenderer: Edit,
+      flex: 1,
+    },
+    {
+      headerName: "Delete",
+      field: "delete",
+      cellRenderer: Delete,
       flex: 1,
     },
   ];

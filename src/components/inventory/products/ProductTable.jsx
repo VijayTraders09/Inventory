@@ -16,7 +16,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import ProductQuantityTable from "./ProductQuantityTable";
+import { toast } from "react-toastify";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -32,12 +44,15 @@ export default function ProductTable({
     (state) => state.products
   );
   const [quatityOpen, setQuatityOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!fetched) dispatch(fetchProductsByCategory(categoryId));
     if(!quatityOpen) setSelectedProduct({})
     return () => {};
-  }, [fetched,quatityOpen]);
+  }, [fetched, quatityOpen]);
 
   const CustomCell = ({ value }) => (
     <p className="text-black dark:white">{value}</p>
@@ -55,6 +70,58 @@ export default function ProductTable({
       </Button>
     );
   };
+
+  const DeleteButtonCell = ({ data }) => {
+    return (
+      <AlertDialog open={deleteDialogOpen && productToDelete?._id === data._id} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteDialogOpen(false);
+          setProductToDelete(null);
+        }
+      }}>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="bg-red-500 text-white hover:bg-red-600 ml-2"
+            onClick={() => {
+              setProductToDelete(data);
+              setDeleteDialogOpen(true);
+            }}
+            disabled={isDeleting}
+          >
+            Delete
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product "{data.productName}".
+              {data.sold > 0 && (
+                <span className="text-red-600 font-semibold block mt-2">
+                  Warning: This product has sales records ({data.sold} units sold). Deleting it may affect your sales history.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-500 hover:bg-red-600"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteProduct(data._id);
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  };
+
   const showQuantity = ({ data }) => {
     return (
       <Button
@@ -66,6 +133,35 @@ export default function ProductTable({
         Quantity
       </Button>
     );
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      setIsDeleting(true);
+      
+      // Make the API call to delete the product
+      const response = await axios.delete(`/api/products?id=${productId}`);
+      
+      if (response.data.success) {
+        // Show success message
+        toast.success(response.data.message || "Product deleted successfully");
+        
+        // Close the dialog
+        setDeleteDialogOpen(false);
+        setProductToDelete(null);
+        
+        // Refetch the products after deletion
+        dispatch(fetchProductsByCategory(categoryId));
+      } else {
+        // Show error message
+        toast.error(response.data.message || "Failed to delete product");
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error(error.response?.data?.message || "Error deleting product");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const columnDefs = [
@@ -82,7 +178,12 @@ export default function ProductTable({
       field: "action",
       sortable: true,
       filter: true,
-      cellRenderer: EditButtonCell,
+      cellRenderer: ({ data }) => (
+        <div className="flex">
+          <EditButtonCell data={data} />
+          <DeleteButtonCell data={data} />
+        </div>
+      ),
       flex: 1,
     },
     {
@@ -104,7 +205,7 @@ export default function ProductTable({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <ProductQuantityTable
-              quantity={selectedProduct?.quantity?.length?selectedProduct?.quantity:[]}
+              quantity={selectedProduct?.quantity?.length ? selectedProduct?.quantity : []}
               hideRemove={true}
             />
           </div>
