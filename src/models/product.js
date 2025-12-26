@@ -10,6 +10,7 @@ const productSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+    sold: { type: Number },
     quantity: [
       {
         godownId: {

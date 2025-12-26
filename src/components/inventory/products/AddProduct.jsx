@@ -46,12 +46,17 @@ export function AddProduct({
   const handleSave = async () => {
     try {
       const response = await axios.post("/api/products", product);
-      if (selectedProduct?._id) toast.success("Product Updated successfully!");
-      else toast.success("Product Added successfully!");
-      setCategory({ id: "", name: "" }); // Reset input
-      setSelectedProduct({});
-      dispatch(fetchProductsByCategory(params.categoryId));
-      setOpen(false);
+      if (response.data.success) {
+        if (selectedProduct?._id)
+          toast.success("Product Updated successfully!");
+        else toast.success("Product Added successfully!");
+        setCategory({ id: "", name: "" }); // Reset input
+        setSelectedProduct({});
+        dispatch(fetchProductsByCategory(params.categoryId));
+        setOpen(false);
+      } else {
+        toast.error(response.data.message);
+      }
     } catch (error) {
       console.error("Error saving product:", error);
       toast.error(error.message.toString());

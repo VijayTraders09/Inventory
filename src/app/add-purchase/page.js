@@ -5,8 +5,6 @@ import CustomInput from "@/components/custom-input";
 import ItemsTable from "@/components/items-table/ItemsTable";
 import SelectDropdown from "@/components/select-dropdown";
 import { Button } from "@/components/ui/button";
-import { db } from "@/firebase/config";
-import { fetchBuyer } from "@/store/slices/buyerSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import { fetchGoddowns } from "@/store/slices/goddownSlice";
 import { fetchProductsByCategory } from "@/store/slices/productSlice";
@@ -171,7 +169,7 @@ export default function Home() {
     }
   }, []);
 
-  console.log(items);
+  console.log("items",sellers);
 
   return (
     <div className="w-full h-[100vh] flex flex-col items-center bg-bgGradient">
