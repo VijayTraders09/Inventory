@@ -37,19 +37,19 @@ export default function HomePage() {
       title: "Sell Return",
       icon: <ShoppingCart className="h-8 w-8" />,
       color: "bg-purple-500",
-      href: "/",
+      href: "/sell-return-form",
     },
     {
       title: "Purchase Return",
       icon: <Package className="h-8 w-8" />,
       color: "bg-orange-500",
-      href: "/",
+      href: "/purchase-return-form",
     },
     {
       title: "Godown",
       icon: <Building className="h-8 w-8" />,
       color: "bg-cyan-500",
-      href: "/",
+      href: "/godown",
     },
   ];
 

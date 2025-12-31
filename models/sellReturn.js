@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const purchaseReturnSchema = new mongoose.Schema(
+const sellReturnSchema = new mongoose.Schema(
   {
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -47,4 +47,4 @@ const purchaseReturnSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.PurchaseReturn || mongoose.model("PurchaseReturn", purchaseReturnSchema);
+export default mongoose.models.SellReturn || mongoose.model("SellReturn", sellReturnSchema);

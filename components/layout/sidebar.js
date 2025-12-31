@@ -11,7 +11,9 @@ const navigation = [
   { name: 'Customers', href: '/customer', icon: Package },
   { name: 'Godown', href: '/godown', icon: Users },
   { name: 'Purchase', href: '/purchase', icon: Users },
+  { name: 'Purchase Return', href: '/purchase-return', icon: Users },
   { name: 'Sell', href: '/sell', icon: Users },
+  { name: 'Sell Return', href: '/sell-return', icon: Users },
   { name: 'Stock Transfer', href: '/stock-transfer', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
