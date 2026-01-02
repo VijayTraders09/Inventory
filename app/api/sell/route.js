@@ -4,6 +4,7 @@ import Sell from '../../../models/sell';
 import Stock from '../../../models/stock';
 import Product from '../../../models/product';
 import Customer from '../../../models/customer';
+import Category from '../../../models/category';
 
 export async function GET(request) {
   try {
