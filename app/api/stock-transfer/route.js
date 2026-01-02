@@ -3,6 +3,7 @@ import connectDB from "../../../lib/db";
 import StockTransfer from "../../../models/stockTransfer";
 import Stock from "../../../models/stock";
 import Godown from "../../../models/godown";
+import Product from "../../../models/product";
 
 export async function GET(request) {
   try {

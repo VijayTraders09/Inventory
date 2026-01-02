@@ -2,20 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, Users, Settings } from 'lucide-react';
+import { Home, 
+  Package, 
+  Users, 
+  Building, 
+  ShoppingCart, 
+  ArrowUpCircle, 
+  DollarSign, 
+  ArrowLeftCircle, 
+  Truck, 
+  ArrowRightLeft  } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Home', href: '/', icon: Home },
+   { name: 'Home', href: '/', icon: Home },
   { name: 'Inventory', href: '/inventory/category', icon: Package },
-  { name: 'Customers', href: '/customer', icon: Package },
-  { name: 'Godown', href: '/godown', icon: Users },
-  { name: 'Purchase', href: '/purchase', icon: Users },
-  { name: 'Purchase Return', href: '/purchase-return', icon: Users },
-  { name: 'Sell', href: '/sell', icon: Users },
-  { name: 'Sell Return', href: '/sell-return', icon: Users },
-  { name: 'Stock Transfer', href: '/stock-transfer', icon: Users },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Customers', href: '/customer', icon: Users },
+  { name: 'Godown', href: '/godown', icon: Building },
+  { name: 'Purchase', href: '/purchase', icon: ShoppingCart },
+  { name: 'Purchase Return', href: '/purchase-return', icon: ArrowUpCircle },
+  { name: 'Sell', href: '/sell', icon: DollarSign },
+  { name: 'Sell Return', href: '/sell-return', icon: ArrowLeftCircle },
+  { name: 'Stock Transfer', href: '/stock-transfer', icon: Truck },
+  { name: 'Product Exchange', href: '/product-exchange', icon: ArrowRightLeft },
 ];
 
 export default function Sidebar() {

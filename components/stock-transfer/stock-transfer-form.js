@@ -33,8 +33,8 @@ import axios from "axios";
 
 export default function StockTransferForm({ isOpen, onClose, onTransferComplete }) {
   const [godowns, setGodowns] = useState([]);
-  const [fromGodownId, setFromGodownId] = useState("");
-  const [toGodownId, setToGodownId] = useState("");
+  const [fromGodownId, setFromGodownId] = useState(0);
+  const [toGodownId, setToGodownId] = useState(0);
   const [stocks, setStocks] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [remark, setRemark] = useState("");
