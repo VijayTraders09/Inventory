@@ -170,7 +170,9 @@ export default function PurchaseGrid() {
       if (response.data.success) {
         return response.data.data;
       } else {
-        toast.error(response.data.error || "Failed to fetch purchases for export");
+        toast.error(
+          response.data.error || "Failed to fetch purchases for export"
+        );
         return [];
       }
     } catch (error) {
@@ -187,7 +189,7 @@ export default function PurchaseGrid() {
     setExporting(true);
     try {
       const allPurchases = await fetchAllPurchases();
-      
+
       if (allPurchases.length === 0) {
         toast.error("No data to export");
         setExporting(false);
@@ -197,27 +199,27 @@ export default function PurchaseGrid() {
       // Prepare data for Excel
       const excelData = allPurchases.map((purchase, index) => ({
         "S.No": index + 1,
-        "Customer": purchase.customerId?.customerName || "N/A",
-        "Invoice": purchase.invoice || "N/A",
+        Customer: purchase.customerId?.customerName || "N/A",
+        Invoice: purchase.invoice || "N/A",
         "Total Quantity": purchase.totalQuantity,
         "Mode of Transport": purchase.modeOfTransport,
         "Created Date": new Date(purchase.createdAt).toLocaleDateString(),
-        "Remark": purchase.remark || "N/A",
+        Remark: purchase.remark || "N/A",
       }));
 
       // Create a workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
-      
+
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, "Purchases");
-      
+
       // Generate buffer
       const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      
+
       // Create blob
       const blob = new Blob([wbout], { type: "application/octet-stream" });
-      
+
       // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -227,7 +229,7 @@ export default function PurchaseGrid() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success("Purchases exported successfully");
     } catch (error) {
       console.error("Export error:", error);
@@ -331,7 +333,7 @@ export default function PurchaseGrid() {
   const handlePrintBill = () => {
     setIsPrinting(true);
     setShowBillPreview(false);
-    
+
     // Add a small delay to ensure the print content is rendered
     setTimeout(() => {
       window.print();
@@ -405,7 +407,7 @@ export default function PurchaseGrid() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all stock entries
     let hasInvalidEntries = false;
     const updatedEntries = stockEntries.map((entry) => {
@@ -419,7 +421,7 @@ export default function PurchaseGrid() {
         errors: validation.errors,
       };
     });
-    
+
     if (hasInvalidEntries) {
       setStockEntries(updatedEntries);
       toast.error("Please fill in all required fields correctly");
@@ -626,7 +628,7 @@ export default function PurchaseGrid() {
               className="bg-green-600 hover:bg-green-700 text-white"
               disabled={loading || exporting}
             >
-              <Download className="mr-2 h-4 w-4" /> 
+              <Download className="mr-2 h-4 w-4" />
               {exporting ? "Exporting..." : "Export Excel"}
             </Button>
             <Button
@@ -674,10 +676,13 @@ export default function PurchaseGrid() {
               className="pl-10"
             />
           </div>
-          
+
           {/* Records Per Page Dropdown */}
           <div className="flex items-center gap-2">
-            <Label htmlFor="recordsPerPage" className="text-sm whitespace-nowrap">
+            <Label
+              htmlFor="recordsPerPage"
+              className="text-sm whitespace-nowrap"
+            >
               Records per page:
             </Label>
             <Select
@@ -696,7 +701,7 @@ export default function PurchaseGrid() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <Button type="submit" disabled={loading}>
             Search
           </Button>
@@ -825,7 +830,10 @@ export default function PurchaseGrid() {
                     id="invoice"
                     value={formData.invoice}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, invoice: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        invoice: e.target.value,
+                      }))
                     }
                     placeholder="Enter invoice number"
                   />
@@ -868,14 +876,16 @@ export default function PurchaseGrid() {
                 </div>
 
                 {stockEntries.map((entry, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`border rounded-lg p-4 space-y-4 ${
                       !entry.isValid ? "border-red-300 bg-red-50" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium">Entry #{index + 1}</h3>
+                      <h3 className="text-sm font-medium">
+                        Entry #{index + 1}
+                      </h3>
                       {stockEntries.length > 1 && (
                         <Button
                           type="button"
@@ -897,19 +907,28 @@ export default function PurchaseGrid() {
                             handleStockEntryChange(index, "categoryId", value)
                           }
                         >
-                          <SelectTrigger className={entry.errors.categoryId ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            className={
+                              entry.errors.categoryId ? "border-red-500" : ""
+                            }
+                          >
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
                             {categories.map((category) => (
-                              <SelectItem key={category._id} value={category._id}>
+                              <SelectItem
+                                key={category._id}
+                                value={category._id}
+                              >
                                 {category.categoryName}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         {entry.errors.categoryId && (
-                          <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                          <p className="text-sm text-red-500">
+                            {entry.errors.categoryId}
+                          </p>
                         )}
                       </div>
 
@@ -922,7 +941,11 @@ export default function PurchaseGrid() {
                           }
                           disabled={!entry.categoryId}
                         >
-                          <SelectTrigger className={entry.errors.productId ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            className={
+                              entry.errors.productId ? "border-red-500" : ""
+                            }
+                          >
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
                           <SelectContent>
@@ -934,7 +957,9 @@ export default function PurchaseGrid() {
                           </SelectContent>
                         </Select>
                         {entry.errors.productId && (
-                          <p className="text-sm text-red-500">{entry.errors.productId}</p>
+                          <p className="text-sm text-red-500">
+                            {entry.errors.productId}
+                          </p>
                         )}
                       </div>
 
@@ -946,7 +971,11 @@ export default function PurchaseGrid() {
                             handleStockEntryChange(index, "godownId", value)
                           }
                         >
-                          <SelectTrigger className={entry.errors.godownId ? "border-red-500" : ""}>
+                          <SelectTrigger
+                            className={
+                              entry.errors.godownId ? "border-red-500" : ""
+                            }
+                          >
                             <SelectValue placeholder="Select godown" />
                           </SelectTrigger>
                           <SelectContent>
@@ -958,7 +987,9 @@ export default function PurchaseGrid() {
                           </SelectContent>
                         </Select>
                         {entry.errors.godownId && (
-                          <p className="text-sm text-red-500">{entry.errors.godownId}</p>
+                          <p className="text-sm text-red-500">
+                            {entry.errors.godownId}
+                          </p>
                         )}
                       </div>
 
@@ -972,15 +1003,19 @@ export default function PurchaseGrid() {
                             handleStockEntryChange(
                               index,
                               "quantity",
-                              parseInt(e.target.value) 
+                              parseInt(e.target.value)
                             )
                           }
                           placeholder="Quantity"
                           required
-                          className={entry.errors.quantity ? "border-red-500" : ""}
+                          className={
+                            entry.errors.quantity ? "border-red-500" : ""
+                          }
                         />
                         {entry.errors.quantity && (
-                          <p className="text-sm text-red-500">{entry.errors.quantity}</p>
+                          <p className="text-sm text-red-500">
+                            {entry.errors.quantity}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1008,9 +1043,11 @@ export default function PurchaseGrid() {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || stockEntries.some(entry => !entry.isValid)}
+                <Button
+                  type="submit"
+                  disabled={
+                    isSubmitting || stockEntries.some((entry) => !entry.isValid)
+                  }
                 >
                   {isSubmitting
                     ? "Saving..."
@@ -1127,8 +1164,8 @@ export default function PurchaseGrid() {
               <AlertDialogTitle>Delete Purchase</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete this purchase? This will also
-                remove all associated stock entries and update product quantities.
-                This action cannot be undone.
+                remove all associated stock entries and update product
+                quantities. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1151,56 +1188,136 @@ export default function PurchaseGrid() {
             </DialogHeader>
             {selectedPurchasePrint && (
               <div className="space-y-4">
-                <div className="bg-white p-4 rounded-lg border" style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                <div
+                  className="bg-white p-4 rounded-lg border"
+                  style={{ fontFamily: "monospace", fontSize: "12px" }}
+                >
                   <div className="text-center mb-4">
                     <div className="font-bold text-lg mb-2">PURCHASE BILL</div>
                     <div>Company Name</div>
                     <div>Address Line 1</div>
                     <div>Address Line 2</div>
                     <div>Phone: 1234567890</div>
-                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">------------------------------------------</div>
+                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <div>Bill No: {selectedPurchasePrint.invoice || "N/A"}</div>
-                    <div>Date: {new Date(selectedPurchasePrint.createdAt).toLocaleDateString()}</div>
-                    <div>Customer: {selectedPurchasePrint.customerId.customerName}</div>
-                    <div>Transport: {selectedPurchasePrint.modeOfTransport}</div>
-                    <div className="border-b border-gray-300 mt-2 mb-2">------------------------------------------</div>
+                    <div>
+                      Date:{" "}
+                      {new Date(
+                        selectedPurchasePrint.createdAt
+                      ).toLocaleDateString()}
+                    </div>
+                    <div>
+                      Customer: {selectedPurchasePrint.customerId.customerName}
+                    </div>
+                    <div>
+                      Transport: {selectedPurchasePrint.modeOfTransport}
+                    </div>
+                    <div className="border-b border-gray-300 mt-2 mb-2">
+                      ------------------------------------------
+                    </div>
                   </div>
-                  
+
                   <div className="mb-4">
-                    <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+                    <table
+                      className="w-full"
+                      style={{ borderCollapse: "collapse" }}
+                    >
                       <thead>
                         <tr>
-                          <th style={{ border: '1px solid #000', padding: '3px', textAlign: 'left', fontSize: '10px' }}>Item</th>
-                          <th style={{ border: '1px solid #000', padding: '3px', textAlign: 'left', fontSize: '10px' }}>Qty</th>
-                          <th style={{ border: '1px solid #000', padding: '3px', textAlign: 'left', fontSize: '10px' }}>Godown</th>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Item
+                          </th>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Qty
+                          </th>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Godown
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedPurchasePrint.stockEntries.map((entry, index) => (
-                          <tr key={index}>
-                            <td style={{ border: '1px solid #000', padding: '3px', fontSize: '9px' }}>{entry.productId.productName}</td>
-                            <td style={{ border: '1px solid #000', padding: '3px', fontSize: '9px' }}>{entry.quantity}</td>
-                            <td style={{ border: '1px solid #000', padding: '3px', fontSize: '9px' }}>{entry.godownId.godownName}</td>
-                          </tr>
-                        ))}
+                        {selectedPurchasePrint.stockEntries.map(
+                          (entry, index) => (
+                            <tr key={index}>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.productId.productName}
+                              </td>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.quantity}
+                              </td>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.godownId.godownName}
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
                   </div>
-                  
+
                   <div className="text-center">
-                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">------------------------------------------</div>
-                    <div>Total Items: {selectedPurchasePrint.totalQuantity}</div>
-                    <div className="border-t border-gray-300 mt-2 mb-2 py-1">------------------------------------------</div>
+                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
+                    <div>
+                      Total Items: {selectedPurchasePrint.totalQuantity}
+                    </div>
+                    <div className="border-t border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
                     <div>Thank you for your business!</div>
                     {selectedPurchasePrint.remark && (
-                      <div className="mt-2">Remark: {selectedPurchasePrint.remark}</div>
+                      <div className="mt-2">
+                        Remark: {selectedPurchasePrint.remark}
+                      </div>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
@@ -1245,8 +1362,13 @@ export default function PurchaseGrid() {
               }
               .bill-content {
                 font-family: 'Courier New', monospace;
-                font-size: 10px;
+                font-size: 12px;
+                font-weight:bold
                 width: 80mm;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
                 padding: 10px;
               }
               .bill-header {
@@ -1260,9 +1382,11 @@ export default function PurchaseGrid() {
               }
               .bill-info {
                 margin-bottom: 10px;
+                 font-weight: bold;
+                font-size: 12px;
               }
               .bill-table {
-                width: 100%;
+                width: 80mm;
                 border-collapse: collapse;
                 margin-bottom: 10px;
               }
@@ -1270,7 +1394,8 @@ export default function PurchaseGrid() {
                 border: 1px solid #000;
                 padding: 3px;
                 text-align: left;
-                font-size: 9px;
+                font-size: 12px;
+                font-weight: bold;
               }
               .bill-table th {
                 font-weight: bold;
@@ -1278,27 +1403,34 @@ export default function PurchaseGrid() {
               .bill-footer {
                 margin-top: 10px;
                 text-align: center;
+                 font-weight: bold;
+                font-size: 12px;
               }
             }
           `}</style>
           <div className="bill-content">
             <div className="bill-header">
               <div className="bill-title">PURCHASE BILL</div>
-              <div>Company Name</div>
+              {/* <div>Company Name</div>
               <div>Address Line 1</div>
               <div>Address Line 2</div>
               <div>Phone: 1234567890</div>
-              <div>------------------------------------------</div>
+              <div>------------------------------------------</div> */}
             </div>
-            
+
             <div className="bill-info">
               <div>Bill No: {selectedPurchasePrint.invoice || "N/A"}</div>
-              <div>Date: {new Date(selectedPurchasePrint.createdAt).toLocaleDateString()}</div>
-              <div>Customer: {selectedPurchasePrint.customerId.customerName}</div>
+              <div>
+                Date:{" "}
+                {new Date(selectedPurchasePrint.createdAt).toLocaleDateString()}
+              </div>
+              <div>
+                Customer: {selectedPurchasePrint.customerId.customerName}
+              </div>
               <div>Transport: {selectedPurchasePrint.modeOfTransport}</div>
               <div>------------------------------------------</div>
             </div>
-            
+
             <table className="bill-table">
               <thead>
                 <tr>
@@ -1317,7 +1449,7 @@ export default function PurchaseGrid() {
                 ))}
               </tbody>
             </table>
-            
+
             <div className="bill-footer">
               <div>------------------------------------------</div>
               <div>Total Items: {selectedPurchasePrint.totalQuantity}</div>
