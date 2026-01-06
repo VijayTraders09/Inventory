@@ -50,6 +50,76 @@ import SearchableSelect from "@/components/ui/searchable-select";
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+const ProductSearchableSelect = ({
+  value,
+  onChange,
+  products,
+  disabled,
+  className,
+  placeholder,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products || [];
+
+    return products.filter((product) =>
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [products, searchTerm]);
+
+  const selectedProduct = useMemo(() => {
+    if (!value || !products) return null;
+    return products.find((product) => product._id === value);
+  }, [value, products]);
+
+  return (
+    <div className="relative">
+      <div
+        className={`flex h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        {selectedProduct ? selectedProduct.productName : placeholder}
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <li
+                  key={product._id}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  onClick={() => {
+                    onChange(product._id);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  {product.productName}
+                </li>
+              ))
+            ) : (
+              <li className="px-3 py-2 text-gray-500">No products found</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function SalesGrid() {
   // Local state
   const [sales, setSales] = useState([]); // Changed from 'sell' to 'sales' for consistency
@@ -131,11 +201,16 @@ export default function SalesGrid() {
   };
 
   // Function to check stock availability
-  const checkStockAvailability = async (productId, godownId, quantity, index) => {
+  const checkStockAvailability = async (
+    productId,
+    godownId,
+    quantity,
+    index
+  ) => {
     if (!productId || !godownId || !quantity) return;
 
     // Set loading state for this specific entry
-    setStockCheckLoading(prev => ({ ...prev, [index]: true }));
+    setStockCheckLoading((prev) => ({ ...prev, [index]: true }));
 
     try {
       const response = await axios.get(
@@ -144,7 +219,7 @@ export default function SalesGrid() {
 
       if (response.data.success) {
         const { available, availableQuantity, shortage } = response.data.data;
-        
+
         // Update the stock entry with stock availability info
         const newEntries = [...stockEntries];
         newEntries[index].stockAvailable = availableQuantity;
@@ -159,14 +234,16 @@ export default function SalesGrid() {
           );
         }
       } else {
-        toast.error(response.data.error || "Failed to check stock availability");
+        toast.error(
+          response.data.error || "Failed to check stock availability"
+        );
       }
     } catch (error) {
       console.error("Error checking stock availability:", error);
       toast.error("Error checking stock availability");
     } finally {
       // Clear loading state for this specific entry
-      setStockCheckLoading(prev => ({ ...prev, [index]: false }));
+      setStockCheckLoading((prev) => ({ ...prev, [index]: false }));
     }
   };
 
@@ -190,8 +267,7 @@ export default function SalesGrid() {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.error ||
-          "An error occurred while fetching sales"
+        error.response?.data?.error || "An error occurred while fetching sales"
       );
     } finally {
       setLoading(false);
@@ -249,7 +325,7 @@ export default function SalesGrid() {
       invoice: sale.invoice || "",
       modeOfTransport: sale.modeOfTransport,
       remark: sale.remark || "",
-      stockEntries
+      stockEntries,
     });
 
     // Populate stock entries from the sale
@@ -258,7 +334,7 @@ export default function SalesGrid() {
       const categoryId = entry.categoryId._id || entry.categoryId;
       const productId = entry.productId._id || entry.productId;
       const godownId = entry.godownId._id || entry.godownId;
-      
+
       return {
         _id: entry._id,
         categoryId: categoryId,
@@ -368,12 +444,12 @@ export default function SalesGrid() {
       newEntries[index].godownId &&
       newEntries[index].quantity
     ) {
-    //   checkStockAvailability(
-    //     newEntries[index].productId,
-    //     newEntries[index].godownId,
-    //     newEntries[index].quantity,
-    //     index
-    //   );
+      //   checkStockAvailability(
+      //     newEntries[index].productId,
+      //     newEntries[index].godownId,
+      //     newEntries[index].quantity,
+      //     index
+      //   );
     }
 
     setStockEntries(newEntries);
@@ -381,7 +457,7 @@ export default function SalesGrid() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all stock entries
     let hasInvalidEntries = false;
     const updatedEntries = stockEntries.map((entry) => {
@@ -395,20 +471,22 @@ export default function SalesGrid() {
         errors: validation.errors,
       };
     });
-    
+
     if (hasInvalidEntries) {
       setStockEntries(updatedEntries);
       toast.error("Please fill in all required fields correctly");
       return;
     }
-    
+
     // Check if all stock entries have sufficient stock
     const hasInsufficientStock = stockEntries.some(
       (entry) => !entry.isStockSufficient
     );
-    
+
     if (hasInsufficientStock) {
-      toast.error("Some items have insufficient stock. Please adjust quantities.");
+      toast.error(
+        "Some items have insufficient stock. Please adjust quantities."
+      );
       return;
     }
 
@@ -422,10 +500,7 @@ export default function SalesGrid() {
 
       let response;
       if (selectedSale) {
-        response = await axios.put(
-          `/api/sell/${selectedSale._id}`,
-          saleData
-        );
+        response = await axios.put(`/api/sell/${selectedSale._id}`, saleData);
       } else {
         response = await axios.post("/api/sell", saleData);
       }
@@ -477,9 +552,7 @@ export default function SalesGrid() {
     if (!selectedSale) return;
 
     try {
-      const response = await axios.delete(
-        `/api/sell/${selectedSale._id}`
-      );
+      const response = await axios.delete(`/api/sell/${selectedSale._id}`);
 
       if (response.data.success) {
         toast.success("Sale deleted successfully");
@@ -644,7 +717,7 @@ export default function SalesGrid() {
             className="pl-10"
           />
         </div>
-        
+
         {/* Records Per Page Dropdown */}
         <div className="flex items-center gap-2">
           <Label htmlFor="recordsPerPage" className="text-sm whitespace-nowrap">
@@ -666,7 +739,7 @@ export default function SalesGrid() {
             </SelectContent>
           </Select>
         </div>
-        
+
         <Button type="submit" disabled={loading}>
           Search
         </Button>
@@ -688,10 +761,7 @@ export default function SalesGrid() {
             <div>
               <p className="text-sm text-gray-600">Total Items</p>
               <p className="text-2xl font-bold">
-                {sales.reduce(
-                  (sum, sale) => sum + sale.totalQuantity,
-                  0
-                )}
+                {sales.reduce((sum, sale) => sum + sale.totalQuantity, 0)}
               </p>
             </div>
             <Package className="h-8 w-8 text-green-500" />
@@ -795,7 +865,10 @@ export default function SalesGrid() {
                   id="invoice"
                   value={formData.invoice}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, invoice: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoice: e.target.value,
+                    }))
                   }
                   placeholder="Enter invoice number"
                 />
@@ -838,10 +911,12 @@ export default function SalesGrid() {
               </div>
 
               {stockEntries.map((entry, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className={`border rounded-lg p-4 space-y-4 ${
-                    !entry.isValid || !entry.isStockSufficient ? "border-red-300 bg-red-50" : ""
+                    !entry.isValid || !entry.isStockSufficient
+                      ? "border-red-300 bg-red-50"
+                      : ""
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -858,7 +933,7 @@ export default function SalesGrid() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Category *</Label>
                       <Select
@@ -867,7 +942,11 @@ export default function SalesGrid() {
                           handleStockEntryChange(index, "categoryId", value)
                         }
                       >
-                        <SelectTrigger className={entry.errors.categoryId ? "border-red-500" : ""}>
+                        <SelectTrigger
+                          className={
+                            entry.errors.categoryId ? "border-red-500" : ""
+                          }
+                        >
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -879,32 +958,31 @@ export default function SalesGrid() {
                         </SelectContent>
                       </Select>
                       {entry.errors.categoryId && (
-                        <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                        <p className="text-sm text-red-500">
+                          {entry.errors.categoryId}
+                        </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
                       <Label>Product *</Label>
-                      <Select
+                      <ProductSearchableSelect
                         value={entry.productId}
-                        onValueChange={(value) =>
+                        onChange={(value) =>
                           handleStockEntryChange(index, "productId", value)
                         }
+                        products={products[index] || []}
                         disabled={!entry.categoryId}
-                      >
-                        <SelectTrigger className={entry.errors.productId ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(products[index] || []).map((product) => (
-                            <SelectItem key={product._id} value={product._id}>
-                              {product.productName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        className={
+                          entry.errors.productId ? "border-red-500" : ""
+                        }
+                        placeholder="Select product"
+                      />
+
                       {entry.errors.productId && (
-                        <p className="text-sm text-red-500">{entry.errors.productId}</p>
+                        <p className="text-sm text-red-500">
+                          {entry.errors.productId}
+                        </p>
                       )}
                     </div>
 
@@ -916,7 +994,11 @@ export default function SalesGrid() {
                           handleStockEntryChange(index, "godownId", value)
                         }
                       >
-                        <SelectTrigger className={entry.errors.godownId ? "border-red-500" : ""}>
+                        <SelectTrigger
+                          className={
+                            entry.errors.godownId ? "border-red-500" : ""
+                          }
+                        >
                           <SelectValue placeholder="Select godown" />
                         </SelectTrigger>
                         <SelectContent>
@@ -928,7 +1010,9 @@ export default function SalesGrid() {
                         </SelectContent>
                       </Select>
                       {entry.errors.godownId && (
-                        <p className="text-sm text-red-500">{entry.errors.godownId}</p>
+                        <p className="text-sm text-red-500">
+                          {entry.errors.godownId}
+                        </p>
                       )}
                     </div>
 
@@ -943,13 +1027,15 @@ export default function SalesGrid() {
                             handleStockEntryChange(
                               index,
                               "quantity",
-                              parseInt(e.target.value) 
+                              parseInt(e.target.value)
                             )
                           }
                           placeholder="Quantity"
                           required
                           className={
-                            !entry.isStockSufficient || entry.errors.quantity ? "border-red-500" : ""
+                            !entry.isStockSufficient || entry.errors.quantity
+                              ? "border-red-500"
+                              : ""
                           }
                         />
                         {stockCheckLoading[index] && (
@@ -959,7 +1045,9 @@ export default function SalesGrid() {
                         )}
                       </div>
                       {entry.errors.quantity && (
-                        <p className="text-sm text-red-500">{entry.errors.quantity}</p>
+                        <p className="text-sm text-red-500">
+                          {entry.errors.quantity}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1010,9 +1098,14 @@ export default function SalesGrid() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || stockEntries.some(entry => !entry.isStockSufficient || !entry.isValid)}
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  stockEntries.some(
+                    (entry) => !entry.isStockSufficient || !entry.isValid
+                  )
+                }
               >
                 {isSubmitting
                   ? "Saving..."
@@ -1042,21 +1135,15 @@ export default function SalesGrid() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Invoice</p>
-                  <p className="font-medium">
-                    {selectedSale.invoice || "N/A"}
-                  </p>
+                  <p className="font-medium">{selectedSale.invoice || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Mode of Transport</p>
-                  <p className="font-medium">
-                    {selectedSale.modeOfTransport}
-                  </p>
+                  <p className="font-medium">{selectedSale.modeOfTransport}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Quantity</p>
-                  <p className="font-medium">
-                    {selectedSale.totalQuantity}
-                  </p>
+                  <p className="font-medium">{selectedSale.totalQuantity}</p>
                 </div>
               </div>
 
@@ -1110,10 +1197,7 @@ export default function SalesGrid() {
               </div>
 
               <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsViewOpen(false)}
-                >
+                <Button variant="outline" onClick={() => setIsViewOpen(false)}>
                   Close
                 </Button>
               </div>
@@ -1128,9 +1212,9 @@ export default function SalesGrid() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Sale</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this sale? This will also
-              restore all associated stock entries and update product quantities.
-              This action cannot be undone.
+              Are you sure you want to delete this sale? This will also restore
+              all associated stock entries and update product quantities. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

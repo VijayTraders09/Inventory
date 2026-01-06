@@ -14,16 +14,83 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Plus,
-  X,
-} from "lucide-react";
+import { Plus, X } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const ProductSearchableSelect = ({
+  value,
+  onChange,
+  products,
+  disabled,
+  className,
+  placeholder,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products || [];
+
+    return products.filter((product) =>
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [products, searchTerm]);
+
+  const selectedProduct = useMemo(() => {
+    if (!value || !products) return null;
+    return products.find((product) => product._id === value);
+  }, [value, products]);
+
+  return (
+    <div className="relative">
+      <div
+        className={`flex h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        {selectedProduct ? selectedProduct.productName : placeholder}
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <li
+                  key={product._id}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  onClick={() => {
+                    onChange(product._id);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  {product.productName}
+                </li>
+              ))
+            ) : (
+              <li className="px-3 py-2 text-gray-500">No products found</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function PurchaseForm() {
   // Local state
@@ -176,7 +243,7 @@ export default function PurchaseForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all stock entries
     let hasInvalidEntries = false;
     const updatedEntries = stockEntries.map((entry) => {
@@ -190,7 +257,7 @@ export default function PurchaseForm() {
         errors: validation.errors,
       };
     });
-    
+
     if (hasInvalidEntries) {
       setStockEntries(updatedEntries);
       toast.error("Please fill in all required fields correctly");
@@ -247,7 +314,9 @@ export default function PurchaseForm() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Add New Purchase</h1>
-          <p className="text-lg text-gray-600 mt-1">Record a new purchase and update inventory</p>
+          <p className="text-lg text-gray-600 mt-1">
+            Record a new purchase and update inventory
+          </p>
         </div>
       </div>
 
@@ -256,7 +325,12 @@ export default function PurchaseForm() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label htmlFor="customerId" className="text-lg font-medium text-gray-700">Customer *</label>
+              <label
+                htmlFor="customerId"
+                className="text-lg font-medium text-gray-700"
+              >
+                Customer *
+              </label>
               <SearchableSelect
                 value={formData.customerId}
                 onChange={(value) =>
@@ -271,7 +345,12 @@ export default function PurchaseForm() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="invoice" className="text-lg font-medium text-gray-700">Invoice</label>
+              <label
+                htmlFor="invoice"
+                className="text-lg font-medium text-gray-700"
+              >
+                Invoice
+              </label>
               <Input
                 id="invoice"
                 value={formData.invoice}
@@ -285,7 +364,12 @@ export default function PurchaseForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="modeOfTransport" className="text-lg font-medium text-gray-700">Mode of Transport *</label>
+            <label
+              htmlFor="modeOfTransport"
+              className="text-lg font-medium text-gray-700"
+            >
+              Mode of Transport *
+            </label>
             <Input
               id="modeOfTransport"
               value={formData.modeOfTransport}
@@ -302,7 +386,12 @@ export default function PurchaseForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="remark" className="text-lg font-medium text-gray-700">Remark</label>
+            <label
+              htmlFor="remark"
+              className="text-lg font-medium text-gray-700"
+            >
+              Remark
+            </label>
             <Textarea
               id="remark"
               value={formData.remark}
@@ -318,12 +407,14 @@ export default function PurchaseForm() {
           {/* Stock Entries */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">Stock Entries</h2>
+              <h2 className="text-xl font-semibold text-gray-800">
+                Stock Entries
+              </h2>
             </div>
 
             {stockEntries.map((entry, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`border rounded-lg p-6 space-y-4 ${
                   !entry.isValid ? "border-red-300 bg-red-50" : ""
                 }`}
@@ -345,14 +436,20 @@ export default function PurchaseForm() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Category *</label>
+                    <label className="text-base font-medium text-gray-700">
+                      Category *
+                    </label>
                     <Select
                       value={entry.categoryId}
                       onValueChange={(value) =>
                         handleStockEntryChange(index, "categoryId", value)
                       }
                     >
-                      <SelectTrigger className={`text-base p-3 ${entry.errors.categoryId ? "border-red-500" : ""}`}>
+                      <SelectTrigger
+                        className={`text-base p-3 ${
+                          entry.errors.categoryId ? "border-red-500" : ""
+                        }`}
+                      >
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -364,44 +461,48 @@ export default function PurchaseForm() {
                       </SelectContent>
                     </Select>
                     {entry.errors.categoryId && (
-                      <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.categoryId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Product *</label>
-                    <Select
+                    <label className="text-base font-medium text-gray-700">
+                      Product *
+                    </label>
+                    <ProductSearchableSelect
                       value={entry.productId}
-                      onValueChange={(value) =>
+                      onChange={(value) =>
                         handleStockEntryChange(index, "productId", value)
                       }
+                      products={products[index] || []}
                       disabled={!entry.categoryId}
-                    >
-                      <SelectTrigger className={`text-base p-3 ${entry.errors.productId ? "border-red-500" : ""}`}>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(products[index] || []).map((product) => (
-                          <SelectItem key={product._id} value={product._id}>
-                            {product.productName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className={entry.errors.productId ? "border-red-500" : ""}
+                      placeholder="Select product"
+                    />
                     {entry.errors.productId && (
-                      <p className="text-sm text-red-500">{entry.errors.productId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.productId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Godown *</label>
+                    <label className="text-base font-medium text-gray-700">
+                      Godown *
+                    </label>
                     <Select
                       value={entry.godownId}
                       onValueChange={(value) =>
                         handleStockEntryChange(index, "godownId", value)
                       }
                     >
-                      <SelectTrigger className={`text-base p-3 ${entry.errors.godownId ? "border-red-500" : ""}`}>
+                      <SelectTrigger
+                        className={`text-base p-3 ${
+                          entry.errors.godownId ? "border-red-500" : ""
+                        }`}
+                      >
                         <SelectValue placeholder="Select godown" />
                       </SelectTrigger>
                       <SelectContent>
@@ -413,12 +514,16 @@ export default function PurchaseForm() {
                       </SelectContent>
                     </Select>
                     {entry.errors.godownId && (
-                      <p className="text-sm text-red-500">{entry.errors.godownId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.godownId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Quantity *</label>
+                    <label className="text-base font-medium text-gray-700">
+                      Quantity *
+                    </label>
                     <Input
                       type="number"
                       min="1"
@@ -427,15 +532,19 @@ export default function PurchaseForm() {
                         handleStockEntryChange(
                           index,
                           "quantity",
-                          parseInt(e.target.value) 
+                          parseInt(e.target.value)
                         )
                       }
                       placeholder="Quantity"
                       required
-                      className={`text-lg p-3 ${entry.errors.quantity ? "border-red-500" : ""}`}
+                      className={`text-lg p-3 ${
+                        entry.errors.quantity ? "border-red-500" : ""
+                      }`}
                     />
                     {entry.errors.quantity && (
-                      <p className="text-sm text-red-500">{entry.errors.quantity}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.quantity}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -464,11 +573,13 @@ export default function PurchaseForm() {
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               size="lg"
               className="text-lg px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isSubmitting || stockEntries.some(entry => !entry.isValid)}
+              disabled={
+                isSubmitting || stockEntries.some((entry) => !entry.isValid)
+              }
             >
               {isSubmitting ? "Saving..." : "Create Purchase"}
             </Button>
