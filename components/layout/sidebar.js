@@ -25,6 +25,7 @@ const navigation = [
   { name: 'Sell Return', href: '/sell-return', icon: ArrowLeftCircle },
   { name: 'Stock Transfer', href: '/stock-transfer', icon: Truck },
   { name: 'Product Exchange', href: '/product-exchange', icon: ArrowRightLeft },
+  { name: 'Transport', href: '/transport', icon: ArrowRightLeft },
 ];
 
 export default function Sidebar() {

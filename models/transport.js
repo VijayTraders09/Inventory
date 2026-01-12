@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 
 const transportSchema  = new mongoose.Schema(
   {
-    transport: { type: String, required: true },
+    name: { type: String, required: true },
   },
   { timestamps: true }
 );

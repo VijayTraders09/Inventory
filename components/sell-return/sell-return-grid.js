@@ -582,7 +582,7 @@ export default function SellReturnGrid() {
           <h1 className="text-3xl font-bold text-gray-900">Sells</h1>
           <p className="text-gray-600 mt-1">Manage your sell records</p>
         </div>
-        <Button
+        {/* <Button
           onClick={() => {
             setSelectedPurchase(null);
             setFormData({
@@ -612,7 +612,7 @@ export default function SellReturnGrid() {
           disabled={loading}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Sell
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search Bar */}

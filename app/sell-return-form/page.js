@@ -21,10 +21,10 @@ import {
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
+import TransportPopup from "@/components/transport/transportPopup";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
-
 
 const ProductSearchableSelect = ({
     value,
@@ -102,6 +102,8 @@ export default function PurchaseForm() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [godowns, setGodowns] = useState([]);
+  const [transports, setTransports] = useState([]);
+  const [isTransportPopupOpen, setIsTransportPopupOpen] = useState(false);
   const [formData, setFormData] = useState({
     customerId: "",
     invoice: "",
@@ -161,13 +163,15 @@ export default function PurchaseForm() {
   // Fetch dropdown data
   const fetchDropdownData = async () => {
     try {
-      const [categoriesRes, godownsRes] = await Promise.all([
+      const [categoriesRes, godownsRes, transportsRes] = await Promise.all([
         axios.get("/api/categories?limit=10000"),
         axios.get("/api/godown?limit=100"),
+        axios.get("/api/transport"),
       ]);
 
       if (categoriesRes.data.success) setCategories(categoriesRes.data.data);
       if (godownsRes.data.success) setGodowns(godownsRes.data.data);
+      if (transportsRes.data.success) setTransports(transportsRes.data.data);
     } catch (error) {
       toast.error("Failed to fetch dropdown data");
     }
@@ -243,6 +247,13 @@ export default function PurchaseForm() {
     newEntries[index].errors = validation.errors;
 
     setStockEntries(newEntries);
+  };
+
+  const handleTransportAdded = (newTransport) => {
+    // Update the transports list with the new transport
+    setTransports([...transports, newTransport]);
+    // Set the new transport as selected
+    setFormData((prev) => ({ ...prev, modeOfTransport: newTransport._id }));
   };
 
   const handleSubmit = async (e) => {
@@ -325,68 +336,7 @@ export default function PurchaseForm() {
       {/* Form */}
       <div className="bg-white rounded-lg shadow-md p-8 max-h-[80vh] overflow-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="customerId" className="text-lg font-medium text-gray-700">Customer *</label>
-              <SearchableSelect
-                value={formData.customerId}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, customerId: value }))
-                }
-                searchEndpoint="/api/customer"
-                labelField="customerName"
-                valueField="_id"
-                placeholder="Select a customer"
-                minSearchLength={1}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="invoice" className="text-lg font-medium text-gray-700">Invoice</label>
-              <Input
-                id="invoice"
-                value={formData.invoice}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, invoice: e.target.value }))
-                }
-                placeholder="Enter invoice number"
-                className="text-lg p-3"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="modeOfTransport" className="text-lg font-medium text-gray-700">Mode of Transport *</label>
-            <Input
-              id="modeOfTransport"
-              value={formData.modeOfTransport}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  modeOfTransport: e.target.value,
-                }))
-              }
-              placeholder="Enter mode of transport"
-              required
-              className="text-lg p-3"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="remark" className="text-lg font-medium text-gray-700">Remark</label>
-            <Textarea
-              id="remark"
-              value={formData.remark}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, remark: e.target.value }))
-              }
-              placeholder="Enter remark (optional)"
-              rows={3}
-              className="text-lg p-3"
-            />
-          </div>
-
-          {/* Stock Entries */}
+          {/* Stock Entries - Moved to the top */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800">Stock Entries</h2>
@@ -518,7 +468,86 @@ export default function PurchaseForm() {
               </Button>
             </div>
           </div>
+          
+          {/* Customer and Invoice Information - Moved after stock entries */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label htmlFor="customerId" className="text-lg font-medium text-gray-700">Customer *</label>
+              <SearchableSelect
+                value={formData.customerId}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, customerId: value }))
+                }
+                searchEndpoint="/api/customer"
+                labelField="customerName"
+                valueField="_id"
+                placeholder="Select a customer"
+                minSearchLength={1}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="invoice" className="text-lg font-medium text-gray-700">Invoice</label>
+              <Input
+                id="invoice"
+                value={formData.invoice}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, invoice: e.target.value }))
+                }
+                placeholder="Enter invoice number"
+                className="text-lg p-3"
+              />
+            </div>
+          </div>
 
+          {/* Mode of Transport with Dropdown and Add Button */}
+          <div className="space-y-2">
+            <label htmlFor="modeOfTransport" className="text-lg font-medium text-gray-700">Mode of Transport *</label>
+            <div className="flex space-x-2">
+              <Select
+                value={formData.modeOfTransport}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, modeOfTransport: value }))
+                }
+              >
+                <SelectTrigger className="text-lg p-3 flex-1">
+                  <SelectValue placeholder="Select mode of transport" />
+                </SelectTrigger>
+                <SelectContent>
+                  {transports.map((transport) => (
+                    <SelectItem key={transport._id} value={transport._id}>
+                      {transport.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTransportPopupOpen(true)}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </div>
+          </div>
+
+          {/* Remark */}
+          <div className="space-y-2">
+            <label htmlFor="remark" className="text-lg font-medium text-gray-700">Remark</label>
+            <Textarea
+              id="remark"
+              value={formData.remark}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, remark: e.target.value }))
+              }
+              placeholder="Enter remark (optional)"
+              rows={3}
+              className="text-lg p-3"
+            />
+          </div>
+
+          {/* Submit Buttons */}
           <div className="flex justify-end space-x-4 mt-8">
             <Button
               type="button"
@@ -540,6 +569,13 @@ export default function PurchaseForm() {
           </div>
         </form>
       </div>
+
+      {/* Transport Popup */}
+      <TransportPopup
+        isOpen={isTransportPopupOpen}
+        onClose={() => setIsTransportPopupOpen(false)}
+        onTransportAdded={handleTransportAdded}
+      />
     </div>
   );
 }

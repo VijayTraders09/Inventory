@@ -629,7 +629,7 @@ export default function PurchaseReturnGrid() {
           <h1 className="text-3xl font-bold text-gray-900">Purchase Return</h1>
           <p className="text-gray-600 mt-1">Manage your purchaseReturn records</p>
         </div>
-        <Button
+        {/* <Button
           onClick={() => {
             setSelectedSale(null);
             setFormData({
@@ -661,7 +661,7 @@ export default function PurchaseReturnGrid() {
           disabled={loading}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Purchase Return
-        </Button>
+        </Button> */}
       </div>
 
       {/* Search Bar */}

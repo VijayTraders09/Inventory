@@ -702,7 +702,7 @@ export default function PurchaseGrid() {
               <Download className="mr-2 h-4 w-4" />
               {exporting ? "Exporting..." : "Export Excel"}
             </Button>
-            <Button
+            {/* <Button
               onClick={() => {
                 setSelectedPurchase(null);
                 setFormData({
@@ -732,7 +732,7 @@ export default function PurchaseGrid() {
               disabled={loading}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Purchase
-            </Button>
+            </Button> */}
           </div>
         </div>
 
