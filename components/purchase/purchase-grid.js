@@ -1243,7 +1243,7 @@ export default function PurchaseGrid() {
 
         {/* Bill Preview Dialog */}
         <Dialog open={showBillPreview} onOpenChange={setShowBillPreview}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="sm:max-w-[400px] max-h-screen overflow-auto">
             <DialogHeader>
               <DialogTitle>Purchase Bill Preview</DialogTitle>
             </DialogHeader>

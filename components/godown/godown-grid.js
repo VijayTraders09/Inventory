@@ -22,9 +22,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Building, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Building, Search, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
+import Link from "next/link";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -33,11 +34,13 @@ export default function GodownGrid() {
   // Local state
   const [godowns, setGodowns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportingIndividual, setExportingIndividual] = useState({});
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
     limit: 10,
-    pages: 0
+    pages: 0,
   });
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +48,7 @@ export default function GodownGrid() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedGodown, setSelectedGodown] = useState(null);
   const [formData, setFormData] = useState({
-    godownName: '',
+    godownName: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
@@ -57,19 +60,22 @@ export default function GodownGrid() {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: pagination.limit.toString(),
-        search
+        search,
       });
-      
+
       const response = await axios.get(`/api/godown?${params}`);
-      
+
       if (response.data.success) {
         setGodowns(response.data.data);
         setPagination(response.data.pagination);
       } else {
-        toast.error(response.data.error || 'Failed to fetch godowns');
+        toast.error(response.data.error || "Failed to fetch godowns");
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'An error occurred while fetching godowns');
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while fetching godowns"
+      );
     } finally {
       setLoading(false);
     }
@@ -79,6 +85,8 @@ export default function GodownGrid() {
     fetchGodowns();
   }, [currentPage, search]);
 
+
+  // Export individual godown data
   const handleEdit = (godown) => {
     setSelectedGodown(godown);
     setFormData({
@@ -109,23 +117,30 @@ export default function GodownGrid() {
     try {
       let response;
       if (selectedGodown) {
-        response = await axios.put(`/api/godown/${selectedGodown._id}`, formData);
+        response = await axios.put(
+          `/api/godown/${selectedGodown._id}`,
+          formData
+        );
       } else {
-        response = await axios.post('/api/godown', formData);
+        response = await axios.post("/api/godown", formData);
       }
 
       if (response.data.success) {
-        toast.success(response.data.message || 
-          (selectedGodown ? 'Godown updated successfully' : 'Godown created successfully'));
+        toast.success(
+          response.data.message ||
+            (selectedGodown
+              ? "Godown updated successfully"
+              : "Godown created successfully")
+        );
         setIsFormOpen(false);
-        setFormData({ godownName: '' });
+        setFormData({ godownName: "" });
         setSelectedGodown(null);
         fetchGodowns(); // Refresh godowns list
       } else {
-        toast.error(response.data.error || 'Something went wrong');
+        toast.error(response.data.error || "Something went wrong");
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'An error occurred');
+      toast.error(error.response?.data?.error || "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
@@ -136,76 +151,95 @@ export default function GodownGrid() {
 
     try {
       const response = await axios.delete(`/api/godown/${selectedGodown._id}`);
-      
+
       if (response.data.success) {
-        toast.success('Godown deleted successfully');
+        toast.success("Godown deleted successfully");
         setIsDeleteOpen(false);
         setSelectedGodown(null);
         fetchGodowns(); // Refresh godowns list
       } else {
-        toast.error(response.data.error || 'Failed to delete godown');
+        toast.error(response.data.error || "Failed to delete godown");
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to delete godown');
+      toast.error(error.response?.data?.error || "Failed to delete godown");
     }
   };
 
-  const columnDefs = useMemo(() => [
-    {
-      headerName: 'Godown Name',
-      field: 'godownName',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1,
-      cellRenderer: (params) => (
-        <div className="flex items-center gap-2">
-          <Building className="h-4 w-4 text-gray-500" />
-          <span className="font-medium">{params.value}</span>
-        </div>
-      )
-    },
-    {
-      headerName: 'Created Date',
-      field: 'createdAt',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 180,
-      valueFormatter: (params) => {
-        return new Date(params.value).toLocaleDateString();
-      }
-    },
-    {
-      headerName: 'Actions',
-      field: '_id',
-      sortable: false,
-      filter: false,
-      resizable: false,
-      width: 150,
-      cellRenderer: (params) => (
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEdit(params.data)}
-            disabled={loading}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDelete(params.data)}
-            className="text-red-600 hover:text-red-700"
-            disabled={loading}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )
-    }
-  ], [loading]);
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Godown Name",
+        field: "godownName",
+        sortable: true,
+        filter: true,
+        resizable: true,
+        flex: 1,
+        cellRenderer: (params) => (
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">{params.value}</span>
+          </div>
+        ),
+      },
+      {
+        headerName: "Created Date",
+        field: "createdAt",
+        sortable: true,
+        filter: true,
+        resizable: true,
+        width: 180,
+        valueFormatter: (params) => {
+          return new Date(params.value).toLocaleDateString();
+        },
+      },
+      {
+        headerName: "Actions",
+        field: "_id",
+        sortable: false,
+        filter: false,
+        resizable: false,
+        width: 200,
+        cellRenderer: (params) => (
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || exportingIndividual[params.data._id]}
+              title="Export this godown's stock data"
+            >
+              <Link
+                href={`http://localhost:3000/api/godown/stock-report/${params.data._id}`}
+              >
+                {exportingIndividual[params.data._id] ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEdit(params.data)}
+              disabled={loading}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDelete(params.data)}
+              className="text-red-600 hover:text-red-700"
+              disabled={loading}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [loading, exportingIndividual]
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -215,17 +249,36 @@ export default function GodownGrid() {
           <h1 className="text-3xl font-bold text-gray-900">Godowns</h1>
           <p className="text-gray-600 mt-1">Manage your warehouse locations</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedGodown(null);
-            setFormData({ godownName: '' });
-            setIsFormOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-          disabled={loading}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Godown
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            className="bg-green-600 hover:bg-green-700 text-white"
+            disabled={loading || exporting}
+          >
+            <Link
+            className="flex gap-1 items-center"
+              href={`http://localhost:3000/api/godown/export-stocks`}
+            >
+              {exporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Export All
+            </Link>
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedGodown(null);
+              setFormData({ godownName: "" });
+              setIsFormOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Godown
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -239,7 +292,9 @@ export default function GodownGrid() {
             className="pl-10"
           />
         </div>
-        <Button type="submit" disabled={loading}>Search</Button>
+        <Button type="submit" disabled={loading}>
+          Search
+        </Button>
       </form>
 
       {/* Stats Cards */}
@@ -257,7 +312,9 @@ export default function GodownGrid() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Page</p>
-              <p className="text-2xl font-bold">{currentPage} of {pagination.pages}</p>
+              <p className="text-2xl font-bold">
+                {currentPage} of {pagination.pages}
+              </p>
             </div>
             <div className="text-sm text-gray-500 border rounded px-2 py-1">
               {pagination.limit} per page
@@ -268,7 +325,10 @@ export default function GodownGrid() {
 
       {/* AG Grid Table */}
       <div className="bg-white rounded-lg shadow border">
-        <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
+        <div
+          className="ag-theme-alpine"
+          style={{ height: "400px", width: "100%" }}
+        >
           <AgGridReact
             rowData={godowns}
             columnDefs={columnDefs}
@@ -288,7 +348,9 @@ export default function GodownGrid() {
       {/* Custom Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
+          Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+          {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+          {pagination.total} entries
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -318,7 +380,7 @@ export default function GodownGrid() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {selectedGodown ? 'Edit Godown' : 'Add New Godown'}
+              {selectedGodown ? "Edit Godown" : "Add New Godown"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -327,22 +389,31 @@ export default function GodownGrid() {
               <Input
                 id="godownName"
                 value={formData.godownName}
-                onChange={(e) => setFormData(prev => ({ ...prev, godownName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    godownName: e.target.value,
+                  }))
+                }
                 placeholder="Enter godown name"
                 required
               />
             </div>
             <div className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsFormOpen(false)}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (selectedGodown ? 'Update' : 'Create')}
+                {isSubmitting
+                  ? "Saving..."
+                  : selectedGodown
+                  ? "Update"
+                  : "Create"}
               </Button>
             </div>
           </form>
@@ -355,14 +426,14 @@ export default function GodownGrid() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Godown</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedGodown?.godownName}"? 
+              Are you sure you want to delete "{selectedGodown?.godownName}"?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteGodown} 
+            <AlertDialogAction
+              onClick={handleDeleteGodown}
               className="bg-red-600 hover:bg-red-700"
             >
               Delete

@@ -42,6 +42,7 @@ import {
   User,
   X,
   AlertCircle,
+  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -140,6 +141,10 @@ export default function SellReturnGrid() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [selectedSellReturnPrint, setSelectedSellReturnPrint] = useState(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [showBillPreview, setShowBillPreview] = useState(false);
   const [formData, setFormData] = useState({
     customerId: "",
     invoice: "",
@@ -309,6 +314,22 @@ export default function SellReturnGrid() {
   const handleDelete = (sell) => {
     setSelectedPurchase(sell);
     setIsDeleteOpen(true);
+  };
+
+  const handlePrint = (sell) => {
+    setSelectedSellReturnPrint(sell);
+    setShowBillPreview(true);
+  };
+
+  const handlePrintBill = () => {
+    setIsPrinting(true);
+    setShowBillPreview(false);
+
+    // Add a small delay to ensure the print content is rendered
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 1000);
   };
 
   const handlePageChange = (page) => {
@@ -539,7 +560,7 @@ export default function SellReturnGrid() {
         sortable: false,
         filter: false,
         resizable: false,
-        width: 200,
+        width: 250,
         cellRenderer: (params) => (
           <div className="flex space-x-2">
             <Button
@@ -561,6 +582,14 @@ export default function SellReturnGrid() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => handlePrint(params.data)}
+              disabled={loading}
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => handleDelete(params.data)}
               className="text-red-600 hover:text-red-700"
               disabled={loading}
@@ -575,299 +604,300 @@ export default function SellReturnGrid() {
   );
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sells</h1>
-          <p className="text-gray-600 mt-1">Manage your sell records</p>
-        </div>
-        {/* <Button
-          onClick={() => {
-            setSelectedPurchase(null);
-            setFormData({
-              customerId: "",
-              invoice: "",
-              modeOfTransport: "",
-              remark: "",
-            });
-            setStockEntries([
-              {
-                categoryId: "",
-                productId: "",
-                godownId: "",
-                quantity: 1,
-                isValid: false,
-                errors: {
+    <>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Sell Returns</h1>
+            <p className="text-gray-600 mt-1">Manage your sell return records</p>
+          </div>
+          {/* <Button
+            onClick={() => {
+              setSelectedPurchase(null);
+              setFormData({
+                customerId: "",
+                invoice: "",
+                modeOfTransport: "",
+                remark: "",
+              });
+              setStockEntries([
+                {
                   categoryId: "",
                   productId: "",
                   godownId: "",
-                  quantity: "",
+                  quantity: 1,
+                  isValid: false,
+                  errors: {
+                    categoryId: "",
+                    productId: "",
+                    godownId: "",
+                    quantity: "",
+                  },
                 },
-              },
-            ]);
-            setIsFormOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-          disabled={loading}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Sell
-        </Button> */}
-      </div>
-
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search sells by invoice..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        {/* Records Per Page Dropdown */}
-        <div className="flex items-center gap-2">
-          <Label htmlFor="recordsPerPage" className="text-sm whitespace-nowrap">
-            Records per page:
-          </Label>
-          <Select
-            value={pagination.limit.toString()}
-            onValueChange={(value) => handleLimitChange(parseInt(value))}
+              ]);
+              setIsFormOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            <SelectTrigger className="w-20">
-              <SelectValue placeholder="10" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
+            <Plus className="mr-2 h-4 w-4" /> Add Sell Return
+          </Button> */}
         </div>
-        
-        <Button type="submit" disabled={loading}>
-          Search
-        </Button>
-      </form>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Sells</p>
-              <p className="text-2xl font-bold">{pagination.total}</p>
-            </div>
-            <ShoppingCart className="h-8 w-8 text-blue-500" />
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search sell returns by invoice..."
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Items</p>
-              <p className="text-2xl font-bold">
-                {sells.reduce(
-                  (sum, sell) => sum + sell.totalQuantity,
-                  0
-                )}
-              </p>
-            </div>
-            <Package className="h-8 w-8 text-green-500" />
+          
+          {/* Records Per Page Dropdown */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="recordsPerPage" className="text-sm whitespace-nowrap">
+              Records per page:
+            </Label>
+            <Select
+              value={pagination.limit.toString()}
+              onValueChange={(value) => handleLimitChange(parseInt(value))}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue placeholder="10" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Page</p>
-              <p className="text-2xl font-bold">
-                {currentPage} of {pagination.pages}
-              </p>
-            </div>
-            <div className="text-sm text-gray-500 border rounded px-2 py-1">
-              {pagination.limit} per page
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* AG Grid Table */}
-      <div className="bg-white rounded-lg shadow border">
-        <div
-          className="ag-theme-alpine"
-          style={{ height: "400px", width: "100%" }}
-        >
-          <AgGridReact
-            rowData={sells}
-            columnDefs={columnDefs}
-            loading={loading}
-            pagination={false}
-            suppressPaginationPanel={true}
-            overlayLoadingTemplate={
-              '<div class="ag-overlay-loading-center">Loading sells...</div>'
-            }
-            overlayNoRowsTemplate={
-              '<div class="ag-overlay-loading-center">No sells found</div>'
-            }
-          />
-        </div>
-      </div>
-
-      {/* Custom Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-          {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-          {pagination.total} entries
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page <= 1}
-          >
-            Previous
+          
+          <Button type="submit" disabled={loading}>
+            Search
           </Button>
-          <span className="text-sm">
-            Page {pagination.page} of {pagination.pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.pages}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+        </form>
 
-      {/* Sell Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedPurchase ? "Edit Sell" : "Add New Sell"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Sell Returns</p>
+                <p className="text-2xl font-bold">{pagination.total}</p>
+              </div>
+              <ShoppingCart className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Items</p>
+                <p className="text-2xl font-bold">
+                  {sells.reduce(
+                    (sum, sell) => sum + sell.totalQuantity,
+                    0
+                  )}
+                </p>
+              </div>
+              <Package className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Page</p>
+                <p className="text-2xl font-bold">
+                  {currentPage} of {pagination.pages}
+                </p>
+              </div>
+              <div className="text-sm text-gray-500 border rounded px-2 py-1">
+                {pagination.limit} per page
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AG Grid Table */}
+        <div className="bg-white rounded-lg shadow border">
+          <div
+            className="ag-theme-alpine"
+            style={{ height: "400px", width: "100%" }}
+          >
+            <AgGridReact
+              rowData={sells}
+              columnDefs={columnDefs}
+              loading={loading}
+              pagination={false}
+              suppressPaginationPanel={true}
+              overlayLoadingTemplate={
+                '<div class="ag-overlay-loading-center">Loading sell returns...</div>'
+              }
+              overlayNoRowsTemplate={
+                '<div class="ag-overlay-loading-center">No sell returns found</div>'
+              }
+            />
+          </div>
+        </div>
+
+        {/* Custom Pagination */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+            {pagination.total} entries
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.pages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+
+        {/* Sell Form Dialog */}
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedPurchase ? "Edit Sell Return" : "Add New Sell Return"}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerId">Customer *</Label>
+                  <SearchableSelect
+                    value={formData.customerId}
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, customerId: value }))
+                    }
+                    searchEndpoint="/api/customer"
+                    labelField="customerName"
+                    valueField="_id"
+                    placeholder="Select a customer"
+                    minSearchLength={1}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice">Invoice</Label>
+                  <Input
+                    id="invoice"
+                    value={formData.invoice}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, invoice: e.target.value }))
+                    }
+                    placeholder="Enter invoice number"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="customerId">Customer *</Label>
-                <SearchableSelect
-                  value={formData.customerId}
-                  onChange={(value) =>
-                    setFormData((prev) => ({ ...prev, customerId: value }))
+                <Label htmlFor="modeOfTransport">Mode of Transport *</Label>
+                <Input
+                  id="modeOfTransport"
+                  value={formData.modeOfTransport}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      modeOfTransport: e.target.value,
+                    }))
                   }
-                  searchEndpoint="/api/customer"
-                  labelField="customerName"
-                  valueField="_id"
-                  placeholder="Select a customer"
-                  minSearchLength={1}
+                  placeholder="Enter mode of transport"
                   required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="invoice">Invoice</Label>
-                <Input
-                  id="invoice"
-                  value={formData.invoice}
+                <Label htmlFor="remark">Remark</Label>
+                <Textarea
+                  id="remark"
+                  value={formData.remark}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, invoice: e.target.value }))
+                    setFormData((prev) => ({ ...prev, remark: e.target.value }))
                   }
-                  placeholder="Enter invoice number"
+                  placeholder="Enter remark (optional)"
+                  rows={2}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="modeOfTransport">Mode of Transport *</Label>
-              <Input
-                id="modeOfTransport"
-                value={formData.modeOfTransport}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    modeOfTransport: e.target.value,
-                  }))
-                }
-                placeholder="Enter mode of transport"
-                required
-              />
-            </div>
+              {/* Stock Entries */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Stock Entries</Label>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="remark">Remark</Label>
-              <Textarea
-                id="remark"
-                value={formData.remark}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, remark: e.target.value }))
-                }
-                placeholder="Enter remark (optional)"
-                rows={2}
-              />
-            </div>
-
-            {/* Stock Entries */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Stock Entries</Label>
-              </div>
-
-              {stockEntries.map((entry, index) => (
-                <div 
-                  key={index} 
-                  className={`border rounded-lg p-4 space-y-4 ${
-                    !entry.isValid ? "border-red-300 bg-red-50" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Entry #{index + 1}</h3>
-                    {stockEntries.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveStockEntry(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Category *</Label>
-                      <Select
-                        value={entry.categoryId}
-                        onValueChange={(value) =>
-                          handleStockEntryChange(index, "categoryId", value)
-                        }
-                      >
-                        <SelectTrigger className={entry.errors.categoryId ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category._id} value={category._id}>
-                              {category.categoryName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {entry.errors.categoryId && (
-                        <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                {stockEntries.map((entry, index) => (
+                  <div 
+                    key={index} 
+                    className={`border rounded-lg p-4 space-y-4 ${
+                      !entry.isValid ? "border-red-300 bg-red-50" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">Entry #{index + 1}</h3>
+                      {stockEntries.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveStockEntry(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Product *</Label>
-                       <ProductSearchableSelect
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Category *</Label>
+                        <Select
+                          value={entry.categoryId}
+                          onValueChange={(value) =>
+                            handleStockEntryChange(index, "categoryId", value)
+                          }
+                        >
+                          <SelectTrigger className={entry.errors.categoryId ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category._id} value={category._id}>
+                                {category.categoryName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {entry.errors.categoryId && (
+                          <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Product *</Label>
+                        <ProductSearchableSelect
                           value={entry.productId}
                           onChange={(value) =>
                             handleStockEntryChange(index, "productId", value)
@@ -879,215 +909,498 @@ export default function SellReturnGrid() {
                           }
                           placeholder="Select product"
                         />
-                      {entry.errors.productId && (
-                        <p className="text-sm text-red-500">{entry.errors.productId}</p>
-                      )}
-                    </div>
+                        {entry.errors.productId && (
+                          <p className="text-sm text-red-500">{entry.errors.productId}</p>
+                        )}
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>Godown *</Label>
-                      <Select
-                        value={entry.godownId}
-                        onValueChange={(value) =>
-                          handleStockEntryChange(index, "godownId", value)
-                        }
-                      >
-                        <SelectTrigger className={entry.errors.godownId ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select godown" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {godowns.map((godown) => (
-                            <SelectItem key={godown._id} value={godown._id}>
-                              {godown.godownName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {entry.errors.godownId && (
-                        <p className="text-sm text-red-500">{entry.errors.godownId}</p>
-                      )}
-                    </div>
+                      <div className="space-y-2">
+                        <Label>Godown *</Label>
+                        <Select
+                          value={entry.godownId}
+                          onValueChange={(value) =>
+                            handleStockEntryChange(index, "godownId", value)
+                          }
+                        >
+                          <SelectTrigger className={entry.errors.godownId ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select godown" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {godowns.map((godown) => (
+                              <SelectItem key={godown._id} value={godown._id}>
+                                {godown.godownName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {entry.errors.godownId && (
+                          <p className="text-sm text-red-500">{entry.errors.godownId}</p>
+                        )}
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>Quantity *</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={entry.quantity}
-                        onChange={(e) =>
-                          handleStockEntryChange(
-                            index,
-                            "quantity",
-                            parseInt(e.target.value) 
-                          )
-                        }
-                        placeholder="Quantity"
-                        required
-                        className={entry.errors.quantity ? "border-red-500" : ""}
-                      />
-                      {entry.errors.quantity && (
-                        <p className="text-sm text-red-500">{entry.errors.quantity}</p>
-                      )}
+                      <div className="space-y-2">
+                        <Label>Quantity *</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={entry.quantity}
+                          onChange={(e) =>
+                            handleStockEntryChange(
+                              index,
+                              "quantity",
+                              parseInt(e.target.value) 
+                            )
+                          }
+                          placeholder="Quantity"
+                          required
+                          className={entry.errors.quantity ? "border-red-500" : ""}
+                        />
+                        {entry.errors.quantity && (
+                          <p className="text-sm text-red-500">{entry.errors.quantity}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
+                ))}
+                <div className="flex items-center justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="bg-green-500"
+                    onClick={handleAddStockEntry}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Entry
+                  </Button>
                 </div>
-              ))}
-              <div className="flex items-center justify-end">
+              </div>
+
+              <div className="flex justify-end space-x-2">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="bg-green-500"
-                  onClick={handleAddStockEntry}
+                  onClick={() => setIsFormOpen(false)}
+                  disabled={isSubmitting}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Add Entry
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || stockEntries.some(entry => !entry.isValid)}
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : selectedPurchase
+                    ? "Update"
+                    : "Create"}
                 </Button>
               </div>
-            </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || stockEntries.some(entry => !entry.isValid)}
-              >
-                {isSubmitting
-                  ? "Saving..."
-                  : selectedPurchase
-                  ? "Update"
-                  : "Create"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        {/* View Sell Dialog */}
+        <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Sell Return Details</DialogTitle>
+            </DialogHeader>
+            {selectedPurchase && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Customer</p>
+                    <p className="font-medium">
+                      {selectedPurchase.customerId.customerName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Invoice</p>
+                    <p className="font-medium">
+                      {selectedPurchase.invoice || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Mode of Transport</p>
+                    <p className="font-medium">
+                      {selectedPurchase.modeOfTransport}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Quantity</p>
+                    <p className="font-medium">
+                      {selectedPurchase.totalQuantity}
+                    </p>
+                  </div>
+                </div>
 
-      {/* View Sell Dialog */}
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Sell Details</DialogTitle>
-          </DialogHeader>
-          {selectedPurchase && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Customer</p>
-                  <p className="font-medium">
-                    {selectedPurchase.customerId.customerName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Invoice</p>
-                  <p className="font-medium">
-                    {selectedPurchase.invoice || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Mode of Transport</p>
-                  <p className="font-medium">
-                    {selectedPurchase.modeOfTransport}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Quantity</p>
-                  <p className="font-medium">
-                    {selectedPurchase.totalQuantity}
-                  </p>
-                </div>
-              </div>
+                {selectedPurchase.remark && (
+                  <div>
+                    <p className="text-sm text-gray-600">Remark</p>
+                    <p className="font-medium">{selectedPurchase.remark}</p>
+                  </div>
+                )}
 
-              {selectedPurchase.remark && (
                 <div>
-                  <p className="text-sm text-gray-600">Remark</p>
-                  <p className="font-medium">{selectedPurchase.remark}</p>
-                </div>
-              )}
-
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Stock Entries</p>
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
-                          Category
-                        </th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
-                          Product
-                        </th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
-                          Godown
-                        </th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
-                          Quantity
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {selectedPurchase.stockEntries.map((entry, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm">
-                            {entry.categoryId.categoryName}
-                          </td>
-                          <td className="px-4 py-2 text-sm">
-                            {entry.productId.productName}
-                          </td>
-                          <td className="px-4 py-2 text-sm">
-                            {entry.godownId.godownName}
-                          </td>
-                          <td className="px-4 py-2 text-sm">
-                            {entry.quantity}
-                          </td>
+                  <p className="text-sm text-gray-600 mb-2">Stock Entries</p>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
+                            Category
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
+                            Product
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
+                            Godown
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-900">
+                            Quantity
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedPurchase.stockEntries.map((entry, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 text-sm">
+                              {entry.categoryId.categoryName}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {entry.productId.productName}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {entry.godownId.godownName}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {entry.quantity}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsViewOpen(false)}
+                  >
+                    Close
+                  </Button>
                 </div>
               </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsViewOpen(false)}
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Sell Return</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this sell return? This will also
+                remove all associated stock entries and update product quantities.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePurchase}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bill Preview Dialog */}
+        <Dialog open={showBillPreview} onOpenChange={setShowBillPreview}>
+          <DialogContent className="sm:max-w-[400px] max-h-screen overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Sell Return Bill Preview</DialogTitle>
+            </DialogHeader>
+            {selectedSellReturnPrint && (
+              <div className="space-y-4">
+                <div
+                  className="bg-white p-4 rounded-lg border"
+                  style={{ fontFamily: "monospace", fontSize: "12px" }}
                 >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                  <div className="text-center mb-4">
+                    <div className="font-bold text-lg mb-2">SELL RETURN BILL</div>
+                    <div>Company Name</div>
+                    <div>Address Line 1</div>
+                    <div>Address Line 2</div>
+                    <div>Phone: 1234567890</div>
+                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
+                  </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Sell</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this sell? This will also
-              remove all associated stock entries and update product quantities.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePurchase}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+                  <div className="mb-4">
+                    <div>Bill No: {selectedSellReturnPrint.invoice || "N/A"}</div>
+                    <div>
+                      Date:{" "}
+                      {new Date(
+                        selectedSellReturnPrint.createdAt
+                      ).toLocaleDateString()}
+                    </div>
+                    <div>
+                      Customer: {selectedSellReturnPrint.customerId.customerName}
+                    </div>
+                    <div>
+                      Transport: {selectedSellReturnPrint.modeOfTransport}
+                    </div>
+                    <div className="border-b border-gray-300 mt-2 mb-2">
+                      ------------------------------------------
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <table
+                      className="w-full"
+                      style={{ borderCollapse: "collapse" }}
+                    >
+                      <thead>
+                        <tr>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Item
+                          </th>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Qty
+                          </th>
+                          <th
+                            style={{
+                              border: "1px solid #000",
+                              padding: "3px",
+                              textAlign: "left",
+                              fontSize: "10px",
+                            }}
+                          >
+                            Godown
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSellReturnPrint.stockEntries.map(
+                          (entry, index) => (
+                            <tr key={index}>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.productId.productName}
+                              </td>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.quantity}
+                              </td>
+                              <td
+                                style={{
+                                  border: "1px solid #000",
+                                  padding: "3px",
+                                  fontSize: "9px",
+                                }}
+                              >
+                                {entry.godownId.godownName}
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
+                    <div>
+                      Total Items: {selectedSellReturnPrint.totalQuantity}
+                    </div>
+                    <div className="border-t border-gray-300 mt-2 mb-2 py-1">
+                      ------------------------------------------
+                    </div>
+                    <div>Thank you for your business!</div>
+                    {selectedSellReturnPrint.remark && (
+                      <div className="mt-2">
+                        Remark: {selectedSellReturnPrint.remark}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBillPreview(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={handlePrintBill}
+                    disabled={!selectedSellReturnPrint}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Print Component - Only rendered when printing */}
+      {isPrinting && selectedSellReturnPrint && (
+        <div className="print-container">
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .print-container, .print-container * {
+                visibility: visible;
+              }
+              .print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+              }
+              @page {
+                size: 80mm auto;
+                margin: 5mm;
+              }
+              .bill-content {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                font-weight:bold
+                width: 80mm;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                padding: 10px;
+              }
+              .bill-header {
+                text-align: center;
+                margin-bottom: 10px;
+              }
+              .bill-title {
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 5px;
+              }
+              .bill-info {
+                margin-bottom: 10px;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+              .bill-table {
+                width: 80mm;
+                border-collapse: collapse;
+                margin-bottom: 10px;
+              }
+              .bill-table th, .bill-table td {
+                border: 1px solid #000;
+                padding: 3px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: bold;
+              }
+              .bill-table th {
+                font-weight: bold;
+              }
+              .bill-footer {
+                margin-top: 10px;
+                text-align: center;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+            }
+          `}</style>
+          <div className="bill-content">
+            <div className="bill-header">
+              <div className="bill-title">SELL RETURN BILL</div>
+              {/* <div>Company Name</div>
+              <div>Address Line 1</div>
+              <div>Address Line 2</div>
+              <div>Phone: 1234567890</div>
+              <div>------------------------------------------</div> */}
+            </div>
+
+            <div className="bill-info">
+              <div>Bill No: {selectedSellReturnPrint.invoice || "N/A"}</div>
+              <div>
+                Date:{" "}
+                {new Date(selectedSellReturnPrint.createdAt).toLocaleDateString()}
+              </div>
+              <div>
+                Customer: {selectedSellReturnPrint.customerId.customerName}
+              </div>
+              <div>Transport: {selectedSellReturnPrint.modeOfTransport}</div>
+              <div>------------------------------------------</div>
+            </div>
+
+            <table className="bill-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "40%" }}>Item</th>
+                  <th style={{ width: "20%" }}>Qty</th>
+                  <th style={{ width: "40%" }}>Godown</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedSellReturnPrint.stockEntries.map((entry, index) => (
+                  <tr key={index}>
+                    <td>{entry.productId.productName}</td>
+                    <td>{entry.quantity}</td>
+                    <td>{entry.godownId.godownName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="bill-footer">
+              <div>------------------------------------------</div>
+              <div>Total Items: {selectedSellReturnPrint.totalQuantity}</div>
+              <div>------------------------------------------</div>
+              <div>Thank you for your business!</div>
+              {selectedSellReturnPrint.remark && (
+                <div>Remark: {selectedSellReturnPrint.remark}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

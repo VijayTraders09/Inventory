@@ -14,11 +14,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Printer } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
 import TransportPopup from "../../components/transport/transportPopup";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -123,6 +129,11 @@ export default function PurchaseForm() {
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // New state for bill preview and printing
+  const [showBillPreview, setShowBillPreview] = useState(false);
+  const [selectedPurchasePrint, setSelectedPurchasePrint] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Function to validate a stock entry
   const validateStockEntry = (entry) => {
@@ -253,6 +264,15 @@ export default function PurchaseForm() {
     setFormData((prev) => ({ ...prev, modeOfTransport: newTransport._id }));
   };
 
+  // Function to handle printing
+  const handlePrintBill = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 100);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -288,6 +308,11 @@ export default function PurchaseForm() {
 
       if (response.data.success) {
         toast.success("Purchase created successfully");
+        
+        // Set the purchase data for printing
+        setSelectedPurchasePrint(response.data.data);
+        setShowBillPreview(true);
+        
         // Reset form
         setFormData({
           customerId: "",
@@ -620,6 +645,288 @@ export default function PurchaseForm() {
         onClose={() => setIsTransportPopupOpen(false)}
         onTransportAdded={handleTransportAdded}
       />
+
+      {/* Bill Preview Dialog */}
+      <Dialog open={showBillPreview} onOpenChange={setShowBillPreview}>
+        <DialogContent className="sm:max-w-[400px] max-h-screen overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Purchase Bill Preview</DialogTitle>
+          </DialogHeader>
+          {selectedPurchasePrint && (
+            <div className="space-y-4">
+              <div
+                className="bg-white p-4 rounded-lg border"
+                style={{ fontFamily: "monospace", fontSize: "12px" }}
+              >
+                <div className="text-center mb-4">
+                  <div className="font-bold text-lg mb-2">PURCHASE BILL</div>
+                  <div>Company Name</div>
+                  <div>Address Line 1</div>
+                  <div>Address Line 2</div>
+                  <div>Phone: 1234567890</div>
+                  <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <div>Bill No: {selectedPurchasePrint.invoice || "N/A"}</div>
+                  <div>
+                    Date:{" "}
+                    {new Date(
+                      selectedPurchasePrint.createdAt
+                    ).toLocaleDateString()}
+                  </div>
+                  <div>
+                    Customer: {selectedPurchasePrint.customerId.customerName}
+                  </div>
+                  <div>
+                    Transport: {selectedPurchasePrint.modeOfTransport}
+                  </div>
+                  <div className="border-b border-gray-300 mt-2 mb-2">
+                    ------------------------------------------
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <table
+                    className="w-full"
+                    style={{ borderCollapse: "collapse" }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Item
+                        </th>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Qty
+                        </th>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Godown
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedPurchasePrint.stockEntries.map(
+                        (entry, index) => (
+                          <tr key={index}>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.productId.productName}
+                            </td>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.quantity}
+                            </td>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.godownId.godownName}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-center">
+                  <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                  <div>
+                    Total Items: {selectedPurchasePrint.totalQuantity}
+                  </div>
+                  <div className="border-t border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                  <div>Thank you for your business!</div>
+                  {selectedPurchasePrint.remark && (
+                    <div className="mt-2">
+                      Remark: {selectedPurchasePrint.remark}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBillPreview(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={handlePrintBill}
+                  disabled={!selectedPurchasePrint}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Component - Only rendered when printing */}
+      {isPrinting && selectedPurchasePrint && (
+        <div className="print-container">
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .print-container, .print-container * {
+                visibility: visible;
+              }
+              .print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+              }
+              @page {
+                size: 80mm auto;
+                margin: 5mm;
+              }
+              .bill-content {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                font-weight:bold
+                width: 80mm;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                padding: 10px;
+              }
+              .bill-header {
+                text-align: center;
+                margin-bottom: 10px;
+              }
+              .bill-title {
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 5px;
+              }
+              .bill-info {
+                margin-bottom: 10px;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+              .bill-table {
+                width: 80mm;
+                border-collapse: collapse;
+                margin-bottom: 10px;
+              }
+              .bill-table th, .bill-table td {
+                border: 1px solid #000;
+                padding: 3px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: bold;
+              }
+              .bill-table th {
+                font-weight: bold;
+              }
+              .bill-footer {
+                margin-top: 10px;
+                text-align: center;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+            }
+          `}</style>
+          <div className="bill-content">
+            <div className="bill-header">
+              <div className="bill-title">PURCHASE BILL</div>
+              {/* <div>Company Name</div>
+              <div>Address Line 1</div>
+              <div>Address Line 2</div>
+              <div>Phone: 1234567890</div>
+              <div>------------------------------------------</div> */}
+            </div>
+
+            <div className="bill-info">
+              <div>Bill No: {selectedPurchasePrint.invoice || "N/A"}</div>
+              <div>
+                Date:{" "}
+                {new Date(selectedPurchasePrint.createdAt).toLocaleDateString()}
+              </div>
+              <div>
+                Customer: {selectedPurchasePrint.customerId.customerName}
+              </div>
+              <div>Transport: {selectedPurchasePrint.modeOfTransport}</div>
+              <div>------------------------------------------</div>
+            </div>
+
+            <table className="bill-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "40%" }}>Item</th>
+                  <th style={{ width: "20%" }}>Qty</th>
+                  <th style={{ width: "40%" }}>Godown</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedPurchasePrint.stockEntries.map((entry, index) => (
+                  <tr key={index}>
+                    <td>{entry.productId.productName}</td>
+                    <td>{entry.quantity}</td>
+                    <td>{entry.godownId.godownName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="bill-footer">
+              <div>------------------------------------------</div>
+              <div>Total Items: {selectedPurchasePrint.totalQuantity}</div>
+              <div>------------------------------------------</div>
+              <div>Thank you for your business!</div>
+              {selectedPurchasePrint.remark && (
+                <div>Remark: {selectedPurchasePrint.remark}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

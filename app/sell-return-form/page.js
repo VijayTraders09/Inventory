@@ -17,11 +17,18 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   X,
+  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
 import TransportPopup from "@/components/transport/transportPopup";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -126,6 +133,11 @@ export default function PurchaseForm() {
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // New state for bill preview and printing
+  const [showBillPreview, setShowBillPreview] = useState(false);
+  const [selectedSellReturnPrint, setSelectedSellReturnPrint] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Function to validate a stock entry
   const validateStockEntry = (entry) => {
@@ -256,6 +268,15 @@ export default function PurchaseForm() {
     setFormData((prev) => ({ ...prev, modeOfTransport: newTransport._id }));
   };
 
+  // Function to handle printing
+  const handlePrintBill = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 100);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -290,7 +311,12 @@ export default function PurchaseForm() {
       const response = await axios.post("/api/sell-return", purchaseData);
 
       if (response.data.success) {
-        toast.success("Sell created successfully");
+        toast.success("Sell return created successfully");
+        
+        // Set the sell return data for printing
+        setSelectedSellReturnPrint(response.data.data);
+        setShowBillPreview(true);
+        
         // Reset form
         setFormData({
           customerId: "",
@@ -328,8 +354,8 @@ export default function PurchaseForm() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Add New Sell</h1>
-          <p className="text-lg text-gray-600 mt-1">Record a new sell and update inventory</p>
+          <h1 className="text-3xl font-bold text-gray-900">Add New Sell Return</h1>
+          <p className="text-lg text-gray-600 mt-1">Record a new sell return and update inventory</p>
         </div>
       </div>
 
@@ -564,7 +590,7 @@ export default function PurchaseForm() {
               className="text-lg px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white"
               disabled={isSubmitting || stockEntries.some(entry => !entry.isValid)}
             >
-              {isSubmitting ? "Saving..." : "Create Sell"}
+              {isSubmitting ? "Saving..." : "Create Sell Return"}
             </Button>
           </div>
         </form>
@@ -576,6 +602,288 @@ export default function PurchaseForm() {
         onClose={() => setIsTransportPopupOpen(false)}
         onTransportAdded={handleTransportAdded}
       />
+
+      {/* Bill Preview Dialog */}
+      <Dialog open={showBillPreview} onOpenChange={setShowBillPreview}>
+        <DialogContent className="sm:max-w-[400px]  max-h-screen overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Sell Return Bill Preview</DialogTitle>
+          </DialogHeader>
+          {selectedSellReturnPrint && (
+            <div className="space-y-4">
+              <div
+                className="bg-white p-4 rounded-lg border"
+                style={{ fontFamily: "monospace", fontSize: "12px" }}
+              >
+                <div className="text-center mb-4">
+                  <div className="font-bold text-lg mb-2">SELL RETURN BILL</div>
+                  <div>Company Name</div>
+                  <div>Address Line 1</div>
+                  <div>Address Line 2</div>
+                  <div>Phone: 1234567890</div>
+                  <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <div>Bill No: {selectedSellReturnPrint.invoice || "N/A"}</div>
+                  <div>
+                    Date:{" "}
+                    {new Date(
+                      selectedSellReturnPrint.createdAt
+                    ).toLocaleDateString()}
+                  </div>
+                  <div>
+                    Customer: {selectedSellReturnPrint.customerId.customerName}
+                  </div>
+                  <div>
+                    Transport: {selectedSellReturnPrint.modeOfTransport}
+                  </div>
+                  <div className="border-b border-gray-300 mt-2 mb-2">
+                    ------------------------------------------
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <table
+                    className="w-full"
+                    style={{ borderCollapse: "collapse" }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Item
+                        </th>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Qty
+                        </th>
+                        <th
+                          style={{
+                            border: "1px solid #000",
+                            padding: "3px",
+                            textAlign: "left",
+                            fontSize: "10px",
+                          }}
+                        >
+                          Godown
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSellReturnPrint.stockEntries.map(
+                        (entry, index) => (
+                          <tr key={index}>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.productId.productName}
+                            </td>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.quantity}
+                            </td>
+                            <td
+                              style={{
+                                border: "1px solid #000",
+                                padding: "3px",
+                                fontSize: "9px",
+                              }}
+                            >
+                              {entry.godownId.godownName}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-center">
+                  <div className="border-t border-b border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                  <div>
+                    Total Items: {selectedSellReturnPrint.totalQuantity}
+                  </div>
+                  <div className="border-t border-gray-300 mt-2 mb-2 py-1">
+                    ------------------------------------------
+                  </div>
+                  <div>Thank you for your business!</div>
+                  {selectedSellReturnPrint.remark && (
+                    <div className="mt-2">
+                      Remark: {selectedSellReturnPrint.remark}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBillPreview(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={handlePrintBill}
+                  disabled={!selectedSellReturnPrint}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Component - Only rendered when printing */}
+      {isPrinting && selectedSellReturnPrint && (
+        <div className="print-container">
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .print-container, .print-container * {
+                visibility: visible;
+              }
+              .print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+              }
+              @page {
+                size: 80mm auto;
+                margin: 5mm;
+              }
+              .bill-content {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                font-weight:bold
+                width: 80mm;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                padding: 10px;
+              }
+              .bill-header {
+                text-align: center;
+                margin-bottom: 10px;
+              }
+              .bill-title {
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 5px;
+              }
+              .bill-info {
+                margin-bottom: 10px;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+              .bill-table {
+                width: 80mm;
+                border-collapse: collapse;
+                margin-bottom: 10px;
+              }
+              .bill-table th, .bill-table td {
+                border: 1px solid #000;
+                padding: 3px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: bold;
+              }
+              .bill-table th {
+                font-weight: bold;
+              }
+              .bill-footer {
+                margin-top: 10px;
+                text-align: center;
+                 font-weight: bold;
+                font-size: 12px;
+              }
+            }
+          `}</style>
+          <div className="bill-content">
+            <div className="bill-header">
+              <div className="bill-title">SELL RETURN BILL</div>
+              {/* <div>Company Name</div>
+              <div>Address Line 1</div>
+              <div>Address Line 2</div>
+              <div>Phone: 1234567890</div>
+              <div>------------------------------------------</div> */}
+            </div>
+
+            <div className="bill-info">
+              <div>Bill No: {selectedSellReturnPrint.invoice || "N/A"}</div>
+              <div>
+                Date:{" "}
+                {new Date(selectedSellReturnPrint.createdAt).toLocaleDateString()}
+              </div>
+              <div>
+                Customer: {selectedSellReturnPrint.customerId.customerName}
+              </div>
+              <div>Transport: {selectedSellReturnPrint.modeOfTransport}</div>
+              <div>------------------------------------------</div>
+            </div>
+
+            <table className="bill-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "40%" }}>Item</th>
+                  <th style={{ width: "20%" }}>Qty</th>
+                  <th style={{ width: "40%" }}>Godown</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedSellReturnPrint.stockEntries.map((entry, index) => (
+                  <tr key={index}>
+                    <td>{entry.productId.productName}</td>
+                    <td>{entry.quantity}</td>
+                    <td>{entry.godownId.godownName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="bill-footer">
+              <div>------------------------------------------</div>
+              <div>Total Items: {selectedSellReturnPrint.totalQuantity}</div>
+              <div>------------------------------------------</div>
+              <div>Thank you for your business!</div>
+              {selectedSellReturnPrint.remark && (
+                <div>Remark: {selectedSellReturnPrint.remark}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
