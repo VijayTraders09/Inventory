@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +26,7 @@ import {
   Search,
   Building,
   Eye,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -49,6 +51,7 @@ export default function StockTransferGrid() {
   const [filterToGodown, setFilterToGodown] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
   const [localSearch, setLocalSearch] = useState("");
 
@@ -102,6 +105,36 @@ export default function StockTransferGrid() {
   const handleView = (transfer) => {
     setSelectedTransfer(transfer);
     setIsViewOpen(true);
+  };
+
+  const handleDelete = (transfer) => {
+    setSelectedTransfer(transfer);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTransfer) return;
+    
+    setLoading(true);
+    try {
+      const response = await axios.delete(`/api/stock-transfer?id=${selectedTransfer._id}`);
+      
+      if (response.data.success) {
+        toast.success("Stock transfer deleted successfully");
+        setIsDeleteOpen(false);
+        setSelectedTransfer(null);
+        fetchTransfers(); // Refresh the data
+      } else {
+        toast.error(response.data.error || "Failed to delete stock transfer");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while deleting the stock transfer"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearch = (e) => {
@@ -184,16 +217,27 @@ export default function StockTransferGrid() {
       sortable: false,
       filter: false,
       resizable: false,
-      width: 100,
+      width: 150,
       cellRenderer: (params) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleView(params.data)}
-          disabled={loading}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleView(params.data)}
+            disabled={loading}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDelete(params.data)}
+            disabled={loading}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -424,6 +468,37 @@ export default function StockTransferGrid() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete this stock transfer?</p>
+            <p className="text-sm text-gray-500 mt-2">
+              This action will reverse the stock transfer and update inventory levels.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

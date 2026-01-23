@@ -187,3 +187,92 @@ export async function POST(request) {
     }, { status: 500 });
   }
 }
+
+export async function DELETE(request) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Stock transfer ID is required' 
+      }, { status: 400 });
+    }
+    
+    // Find the stock transfer
+    const transfer = await StockTransfer.findById(id)
+      .populate('fromGodownId', 'godownName')
+      .populate('toGodownId', 'godownName')
+      .populate({
+        path: 'items',
+        populate: [
+          { path: 'categoryId', select: 'categoryName' },
+          { path: 'productId', select: 'productName' }
+        ]
+      });
+    
+    if (!transfer) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Stock transfer not found' 
+      }, { status: 404 });
+    }
+    
+    // Process the stock transfer reversal
+    for (const item of transfer.items) {
+      // Add back to source godown
+      const sourceStock = await Stock.findOne({
+        productId: item.productId._id,
+        godownId: transfer.fromGodownId._id
+      });
+      
+      if (sourceStock) {
+        // Update existing stock
+        sourceStock.quantity += item.quantity;
+        await sourceStock.save();
+      } else {
+        // Create new stock record
+        const newStock = new Stock({
+          categoryId: item.categoryId._id,
+          productId: item.productId._id,
+          godownId: transfer.fromGodownId._id,
+          quantity: item.quantity
+        });
+        await newStock.save();
+      }
+      
+      // Remove from destination godown
+      const destStock = await Stock.findOne({
+        productId: item.productId._id,
+        godownId: transfer.toGodownId._id
+      });
+      
+      if (destStock) {
+        destStock.quantity -= item.quantity;
+        
+        // If stock becomes 0, delete the record
+        if (destStock.quantity <= 0) {
+          await Stock.findByIdAndDelete(destStock._id);
+        } else {
+          await destStock.save();
+        }
+      }
+    }
+    
+    // Delete the stock transfer record
+    await StockTransfer.findByIdAndDelete(id);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Stock transfer deleted and reversed successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting stock transfer:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to delete stock transfer' 
+    }, { status: 500 });
+  }
+}

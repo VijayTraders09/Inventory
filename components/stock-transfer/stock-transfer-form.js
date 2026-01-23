@@ -76,16 +76,17 @@ export default function StockTransferForm({ isOpen, onClose, onTransferComplete 
         // Initialize selected items with 0 quantity
         setSelectedItems(
           response.data.data.map(stock => ({
-            productId: stock.productId._id,
-            categoryId: stock.categoryId._id,
-            productName: stock.productId.productName,
-            categoryName: stock.categoryId.categoryName,
-            availableQuantity: stock.quantity,
+            productId: stock?.productId?._id,
+            categoryId: stock?.categoryId?._id,
+            productName: stock?.productId?.productName,
+            categoryName: stock?.categoryId?.categoryName,
+            availableQuantity: stock?.quantity,
             transferQuantity: 0,
           }))
         );
       }
     } catch (error) {
+      console.log(error)
       toast.error("Failed to fetch stocks");
     } finally {
       setFetchingStocks(false);

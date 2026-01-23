@@ -152,3 +152,102 @@ export async function POST(request) {
     }, { status: 500 });
   }
 }
+
+// DELETE an exchange
+export async function DELETE(request) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(request.url);
+    const exchangeId = searchParams.get('id');
+    
+    if (!exchangeId) {
+      return NextResponse.json({
+        success: false,
+        error: "Exchange ID is required",
+      }, { status: 400 });
+    }
+
+    // Find the exchange record first
+    const exchange = await ProductExchange.findById(exchangeId);
+    
+    if (!exchange) {
+      return NextResponse.json({
+        success: false,
+        error: "Exchange not found",
+      }, { status: 404 });
+    }
+
+    // Start a Mongoose transaction for atomicity
+    const session = await ProductExchange.startSession();
+    session.startTransaction();
+
+    try {
+      // 1. Find and increment source stock (reverse the deduction)
+      const sourceStock = await Stock.findOne({
+        productId: exchange.fromProductId,
+        godownId: exchange.fromGodownId,
+      }).session(session);
+
+      if (!sourceStock) {
+        await session.abortTransaction();
+        session.endSession();
+        return NextResponse.json({
+          success: false,
+          error: "Source stock record not found. Cannot reverse the exchange.",
+        }, { status: 400 });
+      }
+
+      sourceStock.quantity += exchange.quantity;
+      await sourceStock.save({ session });
+
+      // 2. Find and decrement target stock (reverse the addition)
+      const targetStock = await Stock.findOne({
+        productId: exchange.toProductId,
+        godownId: exchange.toGodownId,
+      }).session(session);
+
+      if (!targetStock) {
+        await session.abortTransaction();
+        session.endSession();
+        return NextResponse.json({
+          success: false,
+          error: "Target stock record not found. Cannot reverse the exchange.",
+        }, { status: 400 });
+      }
+
+      if (targetStock.quantity < exchange.quantity) {
+        await session.abortTransaction();
+        session.endSession();
+        return NextResponse.json({
+          success: false,
+          error: "Insufficient stock in the target godown to reverse the exchange.",
+        }, { status: 400 });
+      }
+
+      targetStock.quantity -= exchange.quantity;
+      await targetStock.save({ session });
+
+      // 3. Delete the exchange record
+      await ProductExchange.findByIdAndDelete(exchangeId).session(session);
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      return NextResponse.json({
+        success: true,
+        message: "Product exchange deleted and stock reversed successfully!",
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error deleting product exchange:', error);
+    return NextResponse.json({
+      success: false,
+      error: "An error occurred while deleting the exchange.",
+    }, { status: 500 });
+  }
+}

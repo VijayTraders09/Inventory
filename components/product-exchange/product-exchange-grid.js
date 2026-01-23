@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,6 +28,7 @@ import {
   Building,
   Eye,
   ArrowRightLeft,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -53,6 +55,7 @@ export default function ProductExchangeGrid() {
   const [filterToGodown, setFilterToGodown] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedExchange, setSelectedExchange] = useState(null);
   const [localSearch, setLocalSearch] = useState("");
 
@@ -119,6 +122,36 @@ export default function ProductExchangeGrid() {
   const handleView = (exchange) => {
     setSelectedExchange(exchange);
     setIsViewOpen(true);
+  };
+
+  const handleDelete = (exchange) => {
+    setSelectedExchange(exchange);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedExchange) return;
+    
+    setLoading(true);
+    try {
+      const response = await axios.delete(`/api/product-exchange?id=${selectedExchange._id}`);
+      
+      if (response.data.success) {
+        toast.success("Exchange deleted successfully");
+        setIsDeleteOpen(false);
+        setSelectedExchange(null);
+        fetchExchanges(); // Refresh the data
+      } else {
+        toast.error(response.data.error || "Failed to delete exchange");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while deleting the exchange"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearch = (e) => {
@@ -217,16 +250,27 @@ export default function ProductExchangeGrid() {
       sortable: false,
       filter: false,
       resizable: false,
-      width: 100,
+      width: 150,
       cellRenderer: (params) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleView(params.data)}
-          disabled={loading}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleView(params.data)}
+            disabled={loading}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDelete(params.data)}
+            disabled={loading}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -264,75 +308,6 @@ export default function ProductExchangeGrid() {
             Search
           </Button>
         </form>
-{/*         
-        <div className="flex items-center gap-2">
-          <Label>Category:</Label>
-          <Select
-            value={filterCategory}
-            onValueChange={(value) => {
-              setFilterCategory(value);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category._id} value={category._id}>
-                  {category.categoryName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Label>From:</Label>
-          <Select
-            value={filterFromGodown}
-            onValueChange={(value) => {
-              setFilterFromGodown(value);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All</SelectItem>
-              {godowns.map((godown) => (
-                <SelectItem key={godown._id} value={godown._id}>
-                  {godown.godownName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Label>To:</Label>
-          <Select
-            value={filterToGodown}
-            onValueChange={(value) => {
-              setFilterToGodown(value);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All</SelectItem>
-              {godowns.map((godown) => (
-                <SelectItem key={godown._id} value={godown._id}>
-                  {godown.godownName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div> */}
       </div>
 
       {/* AG Grid Table */}
@@ -456,6 +431,37 @@ export default function ProductExchangeGrid() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete this exchange?</p>
+            <p className="text-sm text-gray-500 mt-2">
+              This action will reverse the stock changes made by this exchange.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
