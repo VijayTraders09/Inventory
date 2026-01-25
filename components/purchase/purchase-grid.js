@@ -156,7 +156,7 @@ export default function PurchaseGrid() {
     } catch (error) {
       toast.error(
         error.response?.data?.error ||
-          "An error occurred while fetching purchases"
+          "An error occurred while fetching purchases",
       );
     } finally {
       setLoading(false);
@@ -166,24 +166,25 @@ export default function PurchaseGrid() {
   // Fetch all purchases for export
   const fetchAllPurchases = async () => {
     try {
-      const response = await axios.get(`/api/purchase?limit=10000`);
+      const response = await axios.get(`/api/purchase?limit=${pagination.total}`);
       if (response.data.success) {
         return response.data.data;
       } else {
         toast.error(
-          response.data.error || "Failed to fetch purchases for export"
+          response.data.error || "Failed to fetch purchases for export",
         );
         return [];
       }
     } catch (error) {
       toast.error(
         error.response?.data?.error ||
-          "An error occurred while fetching purchases for export"
+          "An error occurred while fetching purchases for export",
       );
       return [];
     }
   };
 
+  // Export to Excel
   // Export to Excel
   const exportToExcel = async () => {
     setExporting(true);
@@ -196,20 +197,82 @@ export default function PurchaseGrid() {
         return;
       }
 
-      // Prepare data for Excel
-      const excelData = allPurchases.map((purchase, index) => ({
-        "S.No": index + 1,
-        Customer: purchase.customerId?.customerName || "N/A",
-        Invoice: purchase.invoice || "N/A",
-        "Total Quantity": purchase.totalQuantity,
-        "Mode of Transport": purchase.modeOfTransport,
-        "Created Date": new Date(purchase.createdAt).toLocaleDateString(),
-        Remark: purchase.remark || "N/A",
-      }));
+      // Prepare data for Excel with product details
+      const excelData = [];
+      let serialNumber = 1;
+
+      allPurchases.forEach((purchase) => {
+        // Add a header row for the purchase
+        excelData.push({
+          "S.No": serialNumber++,
+          Customer: purchase.customerId?.customerName || "N/A",
+          Invoice: purchase.invoice || "N/A",
+          "Total Quantity": purchase.totalQuantity,
+          "Mode of Transport": purchase.modeOfTransport,
+          "Created Date": new Date(purchase.createdAt).toLocaleDateString(),
+          Remark: purchase.remark || "N/A",
+          "Product Name": "",
+          "Category Name": "",
+          "Product Quantity": "",
+          Godown: "",
+          "Row Type": "Purchase Header",
+        });
+
+        // Add rows for each product in the purchase
+        purchase.stockEntries.forEach((entry, index) => {
+          excelData.push({
+            "S.No": "",
+            Customer: "",
+            Invoice: "",
+            "Total Quantity": "",
+            "Mode of Transport": "",
+            "Created Date": "",
+            Remark: "",
+            "Product Name": entry.productId?.productName || "N/A",
+            "Category Name": entry.categoryId?.categoryName || "N/A",
+            "Product Quantity": entry.quantity,
+            Godown: entry.godownId?.godownName || "N/A",
+          });
+        });
+      });
 
       // Create a workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 }, // S.No
+        { wch: 20 }, // Customer
+        { wch: 15 }, // Invoice
+        { wch: 12 }, // Total Quantity
+        { wch: 15 }, // Mode of Transport
+        { wch: 12 }, // Created Date
+        { wch: 20 }, // Remark
+        { wch: 25 }, // Product Name
+        { wch: 20 }, // Category Name
+        { wch: 12 }, // Product Quantity
+        { wch: 15 }, // Godown
+        { wch: 15 }, // Row Type
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add styling to differentiate header rows from product rows
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const rowType = ws[XLSX.utils.encode_cell({ c: 11, r: R })]?.v; // Row Type column
+        if (rowType === "Purchase Header") {
+          // Make header rows bold
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+            if (!ws[cellAddress]) continue;
+            ws[cellAddress].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "FFFFAA00" } }, // Light yellow background
+            };
+          }
+        }
+      }
 
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, "Purchases");
@@ -230,7 +293,7 @@ export default function PurchaseGrid() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Purchases exported successfully");
+      toast.success("Purchases exported successfully with product details");
     } catch (error) {
       console.error("Export error:", error);
       toast.error("Failed to export purchases");
@@ -260,7 +323,7 @@ export default function PurchaseGrid() {
 
     try {
       const response = await axios.get(
-        `/api/products/by-category?categoryId=${categoryId}`
+        `/api/products/by-category?categoryId=${categoryId}`,
       );
 
       if (response.data.success) {
@@ -289,7 +352,7 @@ export default function PurchaseGrid() {
       if (!searchTerm) return products || [];
 
       return products.filter((product) =>
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+        product.productName.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }, [products, searchTerm]);
 
@@ -511,7 +574,7 @@ export default function PurchaseGrid() {
       if (selectedPurchase) {
         response = await axios.put(
           `/api/purchase/${selectedPurchase._id}`,
-          purchaseData
+          purchaseData,
         );
       } else {
         response = await axios.post("/api/purchase", purchaseData);
@@ -522,7 +585,7 @@ export default function PurchaseGrid() {
           response.data.message ||
             (selectedPurchase
               ? "Purchase updated successfully"
-              : "Purchase created successfully")
+              : "Purchase created successfully"),
         );
         setIsFormOpen(false);
         setFormData({
@@ -563,7 +626,7 @@ export default function PurchaseGrid() {
 
     try {
       const response = await axios.delete(
-        `/api/purchase/${selectedPurchase._id}`
+        `/api/purchase/${selectedPurchase._id}`,
       );
 
       if (response.data.success) {
@@ -680,7 +743,7 @@ export default function PurchaseGrid() {
         ),
       },
     ],
-    [loading]
+    [loading],
   );
 
   return (
@@ -796,7 +859,7 @@ export default function PurchaseGrid() {
                 <p className="text-2xl font-bold">
                   {purchases.reduce(
                     (sum, purchase) => sum + purchase.totalQuantity,
-                    0
+                    0,
                   )}
                 </p>
               </div>
@@ -1064,7 +1127,7 @@ export default function PurchaseGrid() {
                             handleStockEntryChange(
                               index,
                               "quantity",
-                              parseInt(e.target.value)
+                              parseInt(e.target.value),
                             )
                           }
                           placeholder="Quantity"
@@ -1113,8 +1176,8 @@ export default function PurchaseGrid() {
                   {isSubmitting
                     ? "Saving..."
                     : selectedPurchase
-                    ? "Update"
-                    : "Create"}
+                      ? "Update"
+                      : "Create"}
                 </Button>
               </div>
             </form>
@@ -1269,7 +1332,7 @@ export default function PurchaseGrid() {
                     <div>
                       Date:{" "}
                       {new Date(
-                        selectedPurchasePrint.createdAt
+                        selectedPurchasePrint.createdAt,
                       ).toLocaleDateString()}
                     </div>
                     <div>
@@ -1354,7 +1417,7 @@ export default function PurchaseGrid() {
                                 {entry.godownId.godownName}
                               </td>
                             </tr>
-                          )
+                          ),
                         )}
                       </tbody>
                     </table>

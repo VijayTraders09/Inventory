@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Product from '../../../../models/product';
 import Category from '../../../../models/category';
 import connectDB from '../../../../lib/db';
+import Stock from "../../../../models/stock";
 
 export async function GET(request, { params }) {
   try {
@@ -59,19 +60,43 @@ export async function PUT(request, { params }) {
   }
 }
 
+
 export async function DELETE(request, { params }) {
   try {
     await connectDB();
-    const {id} = await params
-    const product = await Product.findByIdAndDelete(id);
+    const { id } = await params;
     
+    // Check if the product exists
+    const product = await Product.findById(id);
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ 
+        success: false,
+        error: 'Product not found' 
+      }, { status: 404 });
     }
     
-    return NextResponse.json({ success: true, message: "Product deleted successfully" },
-      { status: 200 });
+    // Check if the product is being used in any stock records
+    const stockCount = await Stock.countDocuments({ productId: id });
+    
+    if (stockCount > 0) {
+      return NextResponse.json({ 
+        success: false,
+        error: `Cannot delete product. It is being used in ${stockCount} stock record(s). Please remove or update these records first.` 
+      }, { status: 400 });
+    }
+    
+    // If not in use, proceed with deletion
+    await Product.findByIdAndDelete(id);
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'Product deleted successfully' 
+    }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
+    console.error('Error deleting product:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to delete product' 
+    }, { status: 500 });
   }
 }

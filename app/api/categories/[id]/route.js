@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '../../../../lib/db';
 import Category from '../../../../models/category';
+import Stock from "../../../../models/stock";
 
 
 export async function PUT(request, { params }) {
@@ -36,18 +37,43 @@ export async function PUT(request, { params }) {
   }
 }
 
+
 export async function DELETE(request, { params }) {
   try {
     await connectDB();
-    let {id} = await params
-    const category = await Category.findByIdAndDelete(id);
+    let { id } = await params;
     
+    // Check if the category exists
+    const category = await Category.findById(id);
     if (!category) {
-      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+      return NextResponse.json({ 
+        success: false,
+        error: 'Category not found' 
+      }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Category deleted successfully' });
+    // Check if the category is being used in any stock records
+    const stockCount = await Stock.countDocuments({ categoryId: id });
+    
+    if (stockCount > 0) {
+      return NextResponse.json({ 
+        success: false,
+        error: `Cannot delete category. It is being used in ${stockCount} stock record(s). Please remove or update these records first.` 
+      }, { status: 400 });
+    }
+    
+    // If not in use, proceed with deletion
+    await Category.findByIdAndDelete(id);
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'Category deleted successfully' 
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete category' }, { status: 500 });
+    console.error('Error deleting category:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: 'Failed to delete category' 
+    }, { status: 500 });
   }
 }

@@ -43,83 +43,85 @@ import {
   X,
   AlertCircle,
   Printer,
+  Download, // Added this import
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
+import * as XLSX from "xlsx"; // Added this import
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 
- const ProductSearchableSelect = ({
-    value,
-    onChange,
-    products,
-    disabled,
-    className,
-    placeholder,
-  }) => {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isOpen, setIsOpen] = useState(false);
+const ProductSearchableSelect = ({
+  value,
+  onChange,
+  products,
+  disabled,
+  className,
+  placeholder,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
-    const filteredProducts = useMemo(() => {
-      if (!searchTerm) return products || [];
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products || [];
 
-      return products.filter((product) =>
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }, [products, searchTerm]);
-
-    const selectedProduct = useMemo(() => {
-      if (!value || !products) return null;
-      return products.find((product) => product._id === value);
-    }, [value, products]);
-
-    return (
-      <div className="relative">
-        <div
-          className={`flex  h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-        >
-          {selectedProduct ? selectedProduct.productName : placeholder}
-        </div>
-
-        {isOpen && !disabled && (
-          <div className="absolute bottom-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            <div className="p-2">
-              <input
-                type="text"
-                className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            <ul className="py-1">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <li
-                    key={product._id}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                    onClick={() => {
-                      onChange(product._id);
-                      setIsOpen(false);
-                      setSearchTerm("");
-                    }}
-                  >
-                    {product.productName}
-                  </li>
-                ))
-              ) : (
-                <li className="px-3 py-2 text-gray-500">No products found</li>
-              )}
-            </ul>
-          </div>
-        )}
-      </div>
+    return products.filter((product) =>
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  };
+  }, [products, searchTerm]);
+
+  const selectedProduct = useMemo(() => {
+    if (!value || !products) return null;
+    return products.find((product) => product._id === value);
+  }, [value, products]);
+
+  return (
+    <div className="relative">
+      <div
+        className={`flex  h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        {selectedProduct ? selectedProduct.productName : placeholder}
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute bottom-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <li
+                  key={product._id}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  onClick={() => {
+                    onChange(product._id);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  {product.productName}
+                </li>
+              ))
+            ) : (
+              <li className="px-3 py-2 text-gray-500">No products found</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function SellReturnGrid() {
   // Local state
@@ -129,6 +131,7 @@ export default function SellReturnGrid() {
   const [products, setProducts] = useState([]);
   const [godowns, setGodowns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false); // Added for export functionality
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -227,6 +230,143 @@ export default function SellReturnGrid() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch all sell returns for export
+  const fetchAllSellReturns = async () => {
+    try {
+      const response = await axios.get(`/api/sell-return?limit=${pagination.total}`);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        toast.error(
+          response.data.error || "Failed to fetch sell returns for export"
+        );
+        return [];
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while fetching sell returns for export"
+      );
+      return [];
+    }
+  };
+
+  // Export to Excel
+  const exportToExcel = async () => {
+    setExporting(true);
+    try {
+      const allSellReturns = await fetchAllSellReturns();
+
+      if (allSellReturns.length === 0) {
+        toast.error("No data to export");
+        setExporting(false);
+        return;
+      }
+
+      // Prepare data for Excel with product details
+      const excelData = [];
+      let serialNumber = 1;
+
+      allSellReturns.forEach((sellReturn) => {
+        // Add a header row for the sell return
+        excelData.push({
+          "S.No": serialNumber++,
+          Customer: sellReturn.customerId?.customerName || "N/A",
+          Invoice: sellReturn.invoice || "N/A",
+          "Total Quantity": sellReturn.totalQuantity,
+          "Mode of Transport": sellReturn.modeOfTransport,
+          "Created Date": new Date(sellReturn.createdAt).toLocaleDateString(),
+          Remark: sellReturn.remark || "N/A",
+          "Product Name": "",
+          "Category Name": "",
+          "Product Quantity": "",
+          Godown: "",
+        });
+
+        // Add rows for each product in the sell return
+        sellReturn.stockEntries.forEach((entry, index) => {
+          excelData.push({
+            "S.No": "",
+            Customer: "",
+            Invoice: "",
+            "Total Quantity": "",
+            "Mode of Transport": "",
+            "Created Date": "",
+            Remark: "",
+            "Product Name": entry.productId?.productName || entry.productId || "N/A",
+            "Category Name": entry.categoryId?.categoryName || entry.categoryId || "N/A",
+            "Product Quantity": entry.quantity,
+            Godown: entry.godownId?.godownName || entry.godownId || "N/A",
+          });
+        });
+      });
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 }, // S.No
+        { wch: 20 }, // Customer
+        { wch: 15 }, // Invoice
+        { wch: 12 }, // Total Quantity
+        { wch: 15 }, // Mode of Transport
+        { wch: 12 }, // Created Date
+        { wch: 20 }, // Remark
+        { wch: 25 }, // Product Name
+        { wch: 20 }, // Category Name
+        { wch: 12 }, // Product Quantity
+        { wch: 15 }, // Godown
+        { wch: 15 }, // Row Type
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add styling to differentiate header rows from product rows
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const rowType = ws[XLSX.utils.encode_cell({ c: 11, r: R })]?.v; // Row Type column
+        if (rowType === "Sell Return Header") {
+          // Make header rows bold
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+            if (!ws[cellAddress]) continue;
+            ws[cellAddress].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "FFFFAA00" } }, // Light yellow background
+            };
+          }
+        }
+      }
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Sell Returns");
+
+      // Generate buffer
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+      // Create blob
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sell_returns_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Sell returns exported successfully with product details");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export sell returns");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -612,37 +752,48 @@ export default function SellReturnGrid() {
             <h1 className="text-3xl font-bold text-gray-900">Sell Returns</h1>
             <p className="text-gray-600 mt-1">Manage your sell return records</p>
           </div>
-          {/* <Button
-            onClick={() => {
-              setSelectedPurchase(null);
-              setFormData({
-                customerId: "",
-                invoice: "",
-                modeOfTransport: "",
-                remark: "",
-              });
-              setStockEntries([
-                {
-                  categoryId: "",
-                  productId: "",
-                  godownId: "",
-                  quantity: 1,
-                  isValid: false,
-                  errors: {
+          <div className="flex space-x-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={loading || exporting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? "Exporting..." : "Export Excel"}
+            </Button>
+            {/* <Button
+              onClick={() => {
+                setSelectedPurchase(null);
+                setFormData({
+                  customerId: "",
+                  invoice: "",
+                  modeOfTransport: "",
+                  remark: "",
+                });
+                setStockEntries([
+                  {
                     categoryId: "",
                     productId: "",
                     godownId: "",
-                    quantity: "",
+                    quantity: 1,
+                    isValid: false,
+                    errors: {
+                      categoryId: "",
+                      productId: "",
+                      godownId: "",
+                      quantity: "",
+                    },
                   },
-                },
-              ]);
-              setIsFormOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Sell Return
-          </Button> */}
+                ]);
+                setIsFormOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Sell Return
+            </Button> */}
+          </div>
         </div>
 
         {/* Search Bar */}

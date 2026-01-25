@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategorySearchableSelect } from "../../components/categories/category-dropdown";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -396,27 +397,16 @@ export default function PurchaseForm() {
                     <label className="text-base font-medium text-gray-700">
                       Category *
                     </label>
-                    <Select
+                    <CategorySearchableSelect
                       value={entry.categoryId}
-                      onValueChange={(value) =>
+                      onChange={(value) =>
                         handleStockEntryChange(index, "categoryId", value)
                       }
-                    >
-                      <SelectTrigger
-                        className={`text-base p-3 ${
-                          entry.errors.categoryId ? "border-red-500" : ""
-                        }`}
-                      >
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category._id} value={category._id}>
-                            {category.categoryName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      categories={categories}
+                      className={entry.errors.categoryId ? "border-red-500" : ""}
+                      placeholder="Select Category"
+                    />
+
                     {entry.errors.categoryId && (
                       <p className="text-sm text-red-500">
                         {entry.errors.categoryId}

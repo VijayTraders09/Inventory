@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { ProductSearchableSelect } from "../products/product-dropdown";
+import { CategorySearchableSelect } from "../categories/category-dropdown";
 
 export default function ProductExchangeForm({
   isOpen,
@@ -118,7 +120,7 @@ export default function ProductExchangeForm({
   const fetchStock = async (productId, godownId, type) => {
     try {
       const response = await axios.get(
-        `/api/stocks/stock-by-product-and-godown?productId=${productId}&godownId=${godownId}`
+        `/api/stocks/stock-by-product-and-godown?productId=${productId}&godownId=${godownId}`,
       );
 
       if (response.data.success) {
@@ -214,44 +216,26 @@ export default function ProductExchangeForm({
           {/* Category Selection */}
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
-            <Select
+
+            <CategorySearchableSelect
               value={categoryId}
-              onValueChange={setCategoryId}
-              disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category._id} value={category._id}>
-                    {category.categoryName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(value) => setCategoryId(value)}
+              categories={categories}
+              placeholder="Select Category"
+            />
           </div>
 
           {/* From Product and Godown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fromProduct">From Product *</Label>
-              <Select
+              <ProductSearchableSelect
                 value={fromProductId}
-                onValueChange={setFromProductId}
+                onChange={(value) => setFromProductId(value)}
+                products={products}
                 disabled={loading || !categoryId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product._id} value={product._id}>
-                      {product.productName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select product"
+              />
             </div>
 
             <div className="space-y-2">
@@ -291,22 +275,13 @@ export default function ProductExchangeForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="toProduct">To Product *</Label>
-              <Select
+              <ProductSearchableSelect
                 value={toProductId}
-                onValueChange={setToProductId}
+                onChange={(value) => setToProductId(value)}
+                products={products}
                 disabled={loading || !categoryId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product._id} value={product._id}>
-                      {product.productName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select product"
+              />
             </div>
 
             <div className="space-y-2">

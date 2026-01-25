@@ -43,92 +43,95 @@ import {
   X,
   AlertCircle,
   Printer,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
+import * as XLSX from "xlsx";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 
- const ProductSearchableSelect = ({
-    value,
-    onChange,
-    products,
-    disabled,
-    className,
-    placeholder,
-  }) => {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isOpen, setIsOpen] = useState(false);
+const ProductSearchableSelect = ({
+  value,
+  onChange,
+  products,
+  disabled,
+  className,
+  placeholder,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
-    const filteredProducts = useMemo(() => {
-      if (!searchTerm) return products || [];
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products || [];
 
-      return products.filter((product) =>
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }, [products, searchTerm]);
-
-    const selectedProduct = useMemo(() => {
-      if (!value || !products) return null;
-      return products.find((product) => product._id === value);
-    }, [value, products]);
-
-    return (
-      <div className="relative">
-        <div
-          className={`flex  h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-        >
-          {selectedProduct ? selectedProduct.productName : placeholder}
-        </div>
-
-        {isOpen && !disabled && (
-          <div className="absolute bottom-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            <div className="p-2">
-              <input
-                type="text"
-                className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            <ul className="py-1">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <li
-                    key={product._id}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                    onClick={() => {
-                      onChange(product._id);
-                      setIsOpen(false);
-                      setSearchTerm("");
-                    }}
-                  >
-                    {product.productName}
-                  </li>
-                ))
-              ) : (
-                <li className="px-3 py-2 text-gray-500">No products found</li>
-              )}
-            </ul>
-          </div>
-        )}
-      </div>
+    return products.filter((product) =>
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  };
-  
+  }, [products, searchTerm]);
+
+  const selectedProduct = useMemo(() => {
+    if (!value || !products) return null;
+    return products.find((product) => product._id === value);
+  }, [value, products]);
+
+  return (
+    <div className="relative">
+      <div
+        className={`flex  h-9 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        {selectedProduct ? selectedProduct.productName : placeholder}
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute bottom-0 z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <li
+                  key={product._id}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  onClick={() => {
+                    onChange(product._id);
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  {product.productName}
+                </li>
+              ))
+            ) : (
+              <li className="px-3 py-2 text-gray-500">No products found</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function PurchaseReturnGrid() {
   // Local state
-  const [purchaseReturn, setPurchaseReturn] = useState([]); // Changed from 'purchase-return' to 'purchaseReturn' for consistency
+  const [purchaseReturn, setPurchaseReturn] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [godowns, setGodowns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false); // Added for export functionality
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -233,6 +236,143 @@ export default function PurchaseReturnGrid() {
     }
   };
 
+  // Fetch all purchase returns for export
+  const fetchAllPurchaseReturns = async () => {
+    try {
+      const response = await axios.get(`/api/purchase-return?limit=${pagination.total}`);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        toast.error(
+          response.data.error || "Failed to fetch purchase returns for export"
+        );
+        return [];
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while fetching purchase returns for export"
+      );
+      return [];
+    }
+  };
+
+  // Export to Excel
+  const exportToExcel = async () => {
+    setExporting(true);
+    try {
+      const allPurchaseReturns = await fetchAllPurchaseReturns();
+
+      if (allPurchaseReturns.length === 0) {
+        toast.error("No data to export");
+        setExporting(false);
+        return;
+      }
+
+      // Prepare data for Excel with product details
+      const excelData = [];
+      let serialNumber = 1;
+
+      allPurchaseReturns.forEach((purchaseReturn) => {
+        // Add a header row for the purchase return
+        excelData.push({
+          "S.No": serialNumber++,
+          Customer: purchaseReturn.customerId?.customerName || "N/A",
+          Invoice: purchaseReturn.invoice || "N/A",
+          "Total Quantity": purchaseReturn.totalQuantity,
+          "Mode of Transport": purchaseReturn.modeOfTransport,
+          "Created Date": new Date(purchaseReturn.createdAt).toLocaleDateString(),
+          Remark: purchaseReturn.remark || "N/A",
+          "Product Name": "",
+          "Category Name": "",
+          "Product Quantity": "",
+          Godown: "",
+        });
+
+        // Add rows for each product in the purchase return
+        purchaseReturn.stockEntries.forEach((entry, index) => {
+          excelData.push({
+            "S.No": "",
+            Customer: "",
+            Invoice: "",
+            "Total Quantity": "",
+            "Mode of Transport": "",
+            "Created Date": "",
+            Remark: "",
+            "Product Name": entry.productId?.productName || entry.productId || "N/A",
+            "Category Name": entry.categoryId?.categoryName || entry.categoryId || "N/A",
+            "Product Quantity": entry.quantity,
+            Godown: entry.godownId?.godownName || entry.godownId || "N/A",
+          });
+        });
+      });
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 }, // S.No
+        { wch: 20 }, // Customer
+        { wch: 15 }, // Invoice
+        { wch: 12 }, // Total Quantity
+        { wch: 15 }, // Mode of Transport
+        { wch: 12 }, // Created Date
+        { wch: 20 }, // Remark
+        { wch: 25 }, // Product Name
+        { wch: 20 }, // Category Name
+        { wch: 12 }, // Product Quantity
+        { wch: 15 }, // Godown
+        { wch: 15 }, // Row Type
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add styling to differentiate header rows from product rows
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const rowType = ws[XLSX.utils.encode_cell({ c: 11, r: R })]?.v; // Row Type column
+        if (rowType === "Purchase Return Header") {
+          // Make header rows bold
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+            if (!ws[cellAddress]) continue;
+            ws[cellAddress].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "FFFFAA00" } }, // Light yellow background
+            };
+          }
+        }
+      }
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Purchase Returns");
+
+      // Generate buffer
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+      // Create blob
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `purchase-returns_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Purchase returns exported successfully with product details");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export purchase returns");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Fetch dropdown data
   const fetchDropdownData = async () => {
     try {
@@ -313,15 +453,6 @@ export default function PurchaseReturnGrid() {
     });
 
     setStockEntries(entries);
-
-    // Fetch products for each stock entry
-    // entries.forEach((entry, index) => {
-    //   if (entry.categoryId) {
-    //     // fetchProductsByCategory(entry.categoryId, index);
-    //     // Check stock availability for each entry
-    //     checkStockAvailability(entry.productId, entry.godownId, entry.quantity, index);
-    //   }
-    // });
 
     setIsFormOpen(true);
   };
@@ -411,21 +542,6 @@ export default function PurchaseReturnGrid() {
     const validation = validateStockEntry(newEntries[index]);
     newEntries[index].isValid = validation.isValid;
     newEntries[index].errors = validation.errors;
-
-    // Check stock availability when product, godown, or quantity changes
-    if (
-      (field === "productId" || field === "godownId" || field === "quantity") &&
-      newEntries[index].productId &&
-      newEntries[index].godownId &&
-      newEntries[index].quantity
-    ) {
-    //   checkStockAvailability(
-    //     newEntries[index].productId,
-    //     newEntries[index].godownId,
-    //     newEntries[index].quantity,
-    //     index
-    //   );
-    }
 
     setStockEntries(newEntries);
   };
@@ -658,39 +774,50 @@ export default function PurchaseReturnGrid() {
             <h1 className="text-3xl font-bold text-gray-900">Purchase Return</h1>
             <p className="text-gray-600 mt-1">Manage your purchaseReturn records</p>
           </div>
-          {/* <Button
-            onClick={() => {
-              setSelectedSale(null);
-              setFormData({
-                customerId: "",
-                invoice: "",
-                modeOfTransport: "",
-                remark: "",
-              });
-              setStockEntries([
-                {
-                  categoryId: "",
-                  productId: "",
-                  godownId: "",
-                  quantity: 1,
-                  stockAvailable: 0,
-                  isStockSufficient: true,
-                  isValid: false,
-                  errors: {
+          <div className="flex space-x-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={loading || exporting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? "Exporting..." : "Export Excel"}
+            </Button>
+            {/* <Button
+              onClick={() => {
+                setSelectedSale(null);
+                setFormData({
+                  customerId: "",
+                  invoice: "",
+                  modeOfTransport: "",
+                  remark: "",
+                });
+                setStockEntries([
+                  {
                     categoryId: "",
                     productId: "",
                     godownId: "",
-                    quantity: "",
+                    quantity: 1,
+                    stockAvailable: 0,
+                    isStockSufficient: true,
+                    isValid: false,
+                    errors: {
+                      categoryId: "",
+                      productId: "",
+                      godownId: "",
+                      quantity: "",
+                    },
                   },
-                },
-              ]);
-              setIsFormOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Purchase Return
-          </Button> */}
+                ]);
+                setIsFormOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Purchase Return
+            </Button> */}
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -1017,29 +1144,6 @@ export default function PurchaseReturnGrid() {
                         )}
                       </div>
                     </div>
-
-                    {/* Stock Availability Indicator */}
-                    {/* {entry.productId && entry.godownId && entry.quantity && (
-                      <div className="flex items-center gap-2 text-sm">
-                        {entry.isStockSufficient ? (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <Package className="h-4 w-4" />
-                            <span>
-                              Stock available: {entry.stockAvailable || 0}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-red-600">
-                            <AlertCircle className="h-4 w-4" />
-                            <span>
-                              Insufficient stock. Available: {entry.stockAvailable || 0}, 
-                              Required: {entry.quantity}, 
-                              Shortage: {entry.shortage || 0}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )} */}
                   </div>
                 ))}
                 <div className="flex items-center justify-end">
@@ -1430,11 +1534,6 @@ export default function PurchaseReturnGrid() {
           <div className="bill-content">
             <div className="bill-header">
               <div className="bill-title">PURCHASE RETURN BILL</div>
-              {/* <div>Company Name</div>
-              <div>Address Line 1</div>
-              <div>Address Line 2</div>
-              <div>Phone: 1234567890</div>
-              <div>------------------------------------------</div> */}
             </div>
 
             <div className="bill-info">

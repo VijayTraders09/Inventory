@@ -43,10 +43,12 @@ import {
   X,
   AlertCircle,
   Printer,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
+import * as XLSX from "xlsx";
 
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -123,12 +125,13 @@ const ProductSearchableSelect = ({
 
 export default function SalesGrid() {
   // Local state
-  const [sales, setSales] = useState([]); // Changed from 'sell' to 'sales' for consistency
+  const [sales, setSales] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [godowns, setGodowns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false); // Added for export functionality
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -279,6 +282,143 @@ export default function SalesGrid() {
     }
   };
 
+  // Fetch all sales for export
+  const fetchAllSales = async () => {
+    try {
+      const response = await axios.get(`/api/sell?limit=${pagination.total}`);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        toast.error(
+          response.data.error || "Failed to fetch sales for export"
+        );
+        return [];
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while fetching sales for export"
+      );
+      return [];
+    }
+  };
+
+  // Export to Excel
+  const exportToExcel = async () => {
+    setExporting(true);
+    try {
+      const allSales = await fetchAllSales();
+
+      if (allSales.length === 0) {
+        toast.error("No data to export");
+        setExporting(false);
+        return;
+      }
+
+      // Prepare data for Excel with product details
+      const excelData = [];
+      let serialNumber = 1;
+
+      allSales.forEach((sale) => {
+        // Add a header row for the sale
+        excelData.push({
+          "S.No": serialNumber++,
+          Customer: sale.customerId?.customerName || "N/A",
+          Invoice: sale.invoice || "N/A",
+          "Total Quantity": sale.totalQuantity,
+          "Mode of Transport": sale.modeOfTransport,
+          "Created Date": new Date(sale.createdAt).toLocaleDateString(),
+          Remark: sale.remark || "N/A",
+          "Product Name": "",
+          "Category Name": "",
+          "Product Quantity": "",
+          Godown: "",
+        });
+
+        // Add rows for each product in the sale
+        sale.stockEntries.forEach((entry, index) => {
+          excelData.push({
+            "S.No": "",
+            Customer: "",
+            Invoice: "",
+            "Total Quantity": "",
+            "Mode of Transport": "",
+            "Created Date": "",
+            Remark: "",
+            "Product Name": entry.productId?.productName || entry.productId || "N/A",
+            "Category Name": entry.categoryId?.categoryName || entry.categoryId || "N/A",
+            "Product Quantity": entry.quantity,
+            Godown: entry.godownId?.godownName || entry.godownId || "N/A",
+          });
+        });
+      });
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 }, // S.No
+        { wch: 20 }, // Customer
+        { wch: 15 }, // Invoice
+        { wch: 12 }, // Total Quantity
+        { wch: 15 }, // Mode of Transport
+        { wch: 12 }, // Created Date
+        { wch: 20 }, // Remark
+        { wch: 25 }, // Product Name
+        { wch: 20 }, // Category Name
+        { wch: 12 }, // Product Quantity
+        { wch: 15 }, // Godown
+        { wch: 15 }, // Row Type
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add styling to differentiate header rows from product rows
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const rowType = ws[XLSX.utils.encode_cell({ c: 11, r: R })]?.v; // Row Type column
+        if (rowType === "Sale Header") {
+          // Make header rows bold
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ c: C, r: R });
+            if (!ws[cellAddress]) continue;
+            ws[cellAddress].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "FFFFAA00" } }, // Light yellow background
+            };
+          }
+        }
+      }
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Sales");
+
+      // Generate buffer
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+      // Create blob
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sales_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Sales exported successfully with product details");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export sales");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Fetch dropdown data
   const fetchDropdownData = async () => {
     try {
@@ -359,15 +499,6 @@ export default function SalesGrid() {
     });
 
     setStockEntries(entries);
-
-    // Fetch products for each stock entry
-    // entries.forEach((entry, index) => {
-    //   if (entry.categoryId) {
-    //     // fetchProductsByCategory(entry.categoryId, index);
-    //     // Check stock availability for each entry
-    //     checkStockAvailability(entry.productId, entry.godownId, entry.quantity, index);
-    //   }
-    // });
 
     setIsFormOpen(true);
   };
@@ -701,39 +832,50 @@ export default function SalesGrid() {
             <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
             <p className="text-gray-600 mt-1">Manage your sales records</p>
           </div>
-          {/* <Button
-            onClick={() => {
-              setSelectedSale(null);
-              setFormData({
-                customerId: "",
-                invoice: "",
-                modeOfTransport: "",
-                remark: "",
-              });
-              setStockEntries([
-                {
-                  categoryId: "",
-                  productId: "",
-                  godownId: "",
-                  quantity: 1,
-                  stockAvailable: 0,
-                  isStockSufficient: true,
-                  isValid: false,
-                  errors: {
+          <div className="flex space-x-2">
+            <Button
+              onClick={exportToExcel}
+              variant="outline"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={loading || exporting}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? "Exporting..." : "Export Excel"}
+            </Button>
+            {/* <Button
+              onClick={() => {
+                setSelectedSale(null);
+                setFormData({
+                  customerId: "",
+                  invoice: "",
+                  modeOfTransport: "",
+                  remark: "",
+                });
+                setStockEntries([
+                  {
                     categoryId: "",
                     productId: "",
                     godownId: "",
-                    quantity: "",
+                    quantity: 1,
+                    stockAvailable: 0,
+                    isStockSufficient: true,
+                    isValid: false,
+                    errors: {
+                      categoryId: "",
+                      productId: "",
+                      godownId: "",
+                      quantity: "",
+                    },
                   },
-                },
-              ]);
-              setIsFormOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Sale
-          </Button> */}
+                ]);
+                setIsFormOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Sale
+            </Button> */}
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -1081,29 +1223,6 @@ export default function SalesGrid() {
                         )}
                       </div>
                     </div>
-
-                    {/* Stock Availability Indicator */}
-                    {/* {entry.productId && entry.godownId && entry.quantity && (
-                      <div className="flex items-center gap-2 text-sm">
-                        {entry.isStockSufficient ? (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <Package className="h-4 w-4" />
-                            <span>
-                              Stock available: {entry.stockAvailable || 0}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-red-600">
-                            <AlertCircle className="h-4 w-4" />
-                            <span>
-                              Insufficient stock. Available: {entry.stockAvailable || 0}, 
-                              Required: {entry.quantity}, 
-                              Shortage: {entry.shortage || 0}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )} */}
                   </div>
                 ))}
                 <div className="flex items-center justify-end">
@@ -1496,11 +1615,6 @@ export default function SalesGrid() {
           <div className="bill-content">
             <div className="bill-header">
               <div className="bill-title">SALES BILL</div>
-              {/* <div>Company Name</div>
-              <div>Address Line 1</div>
-              <div>Address Line 2</div>
-              <div>Phone: 1234567890</div>
-              <div>------------------------------------------</div> */}
             </div>
 
             <div className="bill-info">

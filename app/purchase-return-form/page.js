@@ -11,13 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Plus,
-  X,
-  AlertCircle,
-  Package,
-  Printer,
-} from "lucide-react";
+import { Plus, X, AlertCircle, Package, Printer } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -28,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategorySearchableSelect } from "../../components/categories/category-dropdown";
 
 const ProductSearchableSelect = ({
   value,
@@ -44,7 +39,7 @@ const ProductSearchableSelect = ({
     if (!searchTerm) return products || [];
 
     return products.filter((product) =>
-      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [products, searchTerm]);
 
@@ -132,10 +127,11 @@ export default function SalesForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stockCheckLoading, setStockCheckLoading] = useState({});
-  
+
   // New state for bill preview and printing
   const [showBillPreview, setShowBillPreview] = useState(false);
-  const [selectedPurchaseReturnPrint, setSelectedPurchaseReturnPrint] = useState(null);
+  const [selectedPurchaseReturnPrint, setSelectedPurchaseReturnPrint] =
+    useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
   // Function to validate a stock entry
@@ -172,20 +168,25 @@ export default function SalesForm() {
   };
 
   // Function to check stock availability
-  const checkStockAvailability = async (productId, godownId, quantity, index) => {
+  const checkStockAvailability = async (
+    productId,
+    godownId,
+    quantity,
+    index,
+  ) => {
     if (!productId || !godownId || !quantity) return;
 
     // Set loading state for this specific entry
-    setStockCheckLoading(prev => ({ ...prev, [index]: true }));
+    setStockCheckLoading((prev) => ({ ...prev, [index]: true }));
 
     try {
       const response = await axios.get(
-        `/api/stocks/check?productId=${productId}&godownId=${godownId}&quantity=${quantity}`
+        `/api/stocks/check?productId=${productId}&godownId=${godownId}&quantity=${quantity}`,
       );
 
       if (response.data.success) {
         const { available, availableQuantity, shortage } = response.data.data;
-        
+
         // Update the stock entry with stock availability info
         const newEntries = [...stockEntries];
         newEntries[index].stockAvailable = availableQuantity;
@@ -196,18 +197,20 @@ export default function SalesForm() {
         // Show warning if stock is insufficient
         if (!available) {
           toast.error(
-            `Insufficient stock. Available: ${availableQuantity}, Required: ${quantity}, Shortage: ${shortage}`
+            `Insufficient stock. Available: ${availableQuantity}, Required: ${quantity}, Shortage: ${shortage}`,
           );
         }
       } else {
-        toast.error(response.data.error || "Failed to check stock availability");
+        toast.error(
+          response.data.error || "Failed to check stock availability",
+        );
       }
     } catch (error) {
       console.error("Error checking stock availability:", error);
       toast.error("Error checking stock availability");
     } finally {
       // Clear loading state for this specific entry
-      setStockCheckLoading(prev => ({ ...prev, [index]: false }));
+      setStockCheckLoading((prev) => ({ ...prev, [index]: false }));
     }
   };
 
@@ -234,7 +237,7 @@ export default function SalesForm() {
 
     try {
       const response = await axios.get(
-        `/api/products/by-category?categoryId=${categoryId}`
+        `/api/products/by-category?categoryId=${categoryId}`,
       );
 
       if (response.data.success) {
@@ -337,7 +340,7 @@ export default function SalesForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all stock entries
     let hasInvalidEntries = false;
     const updatedEntries = stockEntries.map((entry) => {
@@ -351,20 +354,22 @@ export default function SalesForm() {
         errors: validation.errors,
       };
     });
-    
+
     if (hasInvalidEntries) {
       setStockEntries(updatedEntries);
       toast.error("Please fill in all required fields correctly");
       return;
     }
-    
+
     // Check if all stock entries have sufficient stock
     const hasInsufficientStock = stockEntries.some(
-      (entry) => !entry.isStockSufficient
+      (entry) => !entry.isStockSufficient,
     );
-    
+
     if (hasInsufficientStock) {
-      toast.error("Some items have insufficient stock. Please adjust quantities.");
+      toast.error(
+        "Some items have insufficient stock. Please adjust quantities.",
+      );
       return;
     }
 
@@ -380,11 +385,11 @@ export default function SalesForm() {
 
       if (response.data.success) {
         toast.success("Purchase Return created successfully");
-        
+
         // Set the purchase return data for printing
         setSelectedPurchaseReturnPrint(response.data.data);
         setShowBillPreview(true);
-        
+
         // Reset form
         setFormData({
           customerId: "",
@@ -424,8 +429,12 @@ export default function SalesForm() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Add New Purchase Return</h1>
-          <p className="text-lg text-gray-600 mt-1">Record a new purchase return and update inventory</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Add New Purchase Return
+          </h1>
+          <p className="text-lg text-gray-600 mt-1">
+            Record a new purchase return and update inventory
+          </p>
         </div>
       </div>
 
@@ -435,14 +444,18 @@ export default function SalesForm() {
           {/* Stock Entries - Moved to the top */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">Stock Entries</h2>
+              <h2 className="text-xl font-semibold text-gray-800">
+                Stock Entries
+              </h2>
             </div>
 
             {stockEntries.map((entry, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`border rounded-lg p-6 space-y-4 ${
-                  !entry.isValid || !entry.isStockSufficient ? "border-red-300 bg-red-50" : ""
+                  !entry.isValid || !entry.isStockSufficient
+                    ? "border-red-300 bg-red-50"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -462,57 +475,62 @@ export default function SalesForm() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Category *</label>
-                    <Select
+                    <label className="text-base font-medium text-gray-700">
+                      Category *
+                    </label>
+                    <CategorySearchableSelect
                       value={entry.categoryId}
-                      onValueChange={(value) =>
+                      onChange={(value) =>
                         handleStockEntryChange(index, "categoryId", value)
                       }
-                    >
-                      <SelectTrigger className={`text-base p-3 ${entry.errors.categoryId ? "border-red-500" : ""}`}>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category._id} value={category._id}>
-                            {category.categoryName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      categories={categories}
+                      className={
+                        entry.errors.categoryId ? "border-red-500" : ""
+                      }
+                      placeholder="Select Category"
+                    />
+
                     {entry.errors.categoryId && (
-                      <p className="text-sm text-red-500">{entry.errors.categoryId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.categoryId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Product *</label>
-                   <ProductSearchableSelect
-                          value={entry.productId}
-                          onChange={(value) =>
-                            handleStockEntryChange(index, "productId", value)
-                          }
-                          products={products[index] || []}
-                          disabled={!entry.categoryId}
-                          className={
-                            entry.errors.productId ? "border-red-500" : ""
-                          }
-                          placeholder="Select product"
-                        />
+                    <label className="text-base font-medium text-gray-700">
+                      Product *
+                    </label>
+                    <ProductSearchableSelect
+                      value={entry.productId}
+                      onChange={(value) =>
+                        handleStockEntryChange(index, "productId", value)
+                      }
+                      products={products[index] || []}
+                      disabled={!entry.categoryId}
+                      className={entry.errors.productId ? "border-red-500" : ""}
+                      placeholder="Select product"
+                    />
                     {entry.errors.productId && (
-                      <p className="text-sm text-red-500">{entry.errors.productId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.productId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Godown *</label>
+                    <label className="text-base font-medium text-gray-700">
+                      Godown *
+                    </label>
                     <Select
                       value={entry.godownId}
                       onValueChange={(value) =>
                         handleStockEntryChange(index, "godownId", value)
                       }
                     >
-                      <SelectTrigger className={`text-base p-3 ${entry.errors.godownId ? "border-red-500" : ""}`}>
+                      <SelectTrigger
+                        className={`text-base p-3 ${entry.errors.godownId ? "border-red-500" : ""}`}
+                      >
                         <SelectValue placeholder="Select godown" />
                       </SelectTrigger>
                       <SelectContent>
@@ -524,12 +542,16 @@ export default function SalesForm() {
                       </SelectContent>
                     </Select>
                     {entry.errors.godownId && (
-                      <p className="text-sm text-red-500">{entry.errors.godownId}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.godownId}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-base font-medium text-gray-700">Quantity *</label>
+                    <label className="text-base font-medium text-gray-700">
+                      Quantity *
+                    </label>
                     <div className="relative">
                       <Input
                         type="number"
@@ -539,7 +561,7 @@ export default function SalesForm() {
                           handleStockEntryChange(
                             index,
                             "quantity",
-                            parseInt(e.target.value) 
+                            parseInt(e.target.value),
                           )
                         }
                         placeholder="Quantity"
@@ -553,7 +575,9 @@ export default function SalesForm() {
                       )}
                     </div>
                     {entry.errors.quantity && (
-                      <p className="text-sm text-red-500">{entry.errors.quantity}</p>
+                      <p className="text-sm text-red-500">
+                        {entry.errors.quantity}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -572,9 +596,9 @@ export default function SalesForm() {
                       <div className="flex items-center gap-1 text-red-600">
                         <AlertCircle className="h-4 w-4" />
                         <span>
-                          Insufficient stock. Available: {entry.stockAvailable || 0}, 
-                          Required: {entry.quantity}, 
-                          Shortage: {entry.shortage || 0}
+                          Insufficient stock. Available:{" "}
+                          {entry.stockAvailable || 0}, Required:{" "}
+                          {entry.quantity}, Shortage: {entry.shortage || 0}
                         </span>
                       </div>
                     )}
@@ -594,11 +618,16 @@ export default function SalesForm() {
               </Button>
             </div>
           </div>
-          
+
           {/* Customer and Invoice Information - Moved after stock entries */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label htmlFor="customerId" className="text-lg font-medium text-gray-700">Customer *</label>
+              <label
+                htmlFor="customerId"
+                className="text-lg font-medium text-gray-700"
+              >
+                Customer *
+              </label>
               <SearchableSelect
                 value={formData.customerId}
                 onChange={(value) =>
@@ -613,7 +642,12 @@ export default function SalesForm() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="invoice" className="text-lg font-medium text-gray-700">Invoice</label>
+              <label
+                htmlFor="invoice"
+                className="text-lg font-medium text-gray-700"
+              >
+                Invoice
+              </label>
               <Input
                 id="invoice"
                 value={formData.invoice}
@@ -628,7 +662,12 @@ export default function SalesForm() {
 
           {/* Mode of Transport with Dropdown and Add Button */}
           <div className="space-y-2">
-            <label htmlFor="modeOfTransport" className="text-lg font-medium text-gray-700">Mode of Transport *</label>
+            <label
+              htmlFor="modeOfTransport"
+              className="text-lg font-medium text-gray-700"
+            >
+              Mode of Transport *
+            </label>
             <div className="flex space-x-2">
               <Select
                 value={formData.modeOfTransport}
@@ -660,7 +699,12 @@ export default function SalesForm() {
 
           {/* Remark */}
           <div className="space-y-2">
-            <label htmlFor="remark" className="text-lg font-medium text-gray-700">Remark</label>
+            <label
+              htmlFor="remark"
+              className="text-lg font-medium text-gray-700"
+            >
+              Remark
+            </label>
             <Textarea
               id="remark"
               value={formData.remark}
@@ -684,11 +728,16 @@ export default function SalesForm() {
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               size="lg"
               className="text-lg px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isSubmitting || stockEntries.some(entry => !entry.isValid || !entry.isStockSufficient)}
+              disabled={
+                isSubmitting ||
+                stockEntries.some(
+                  (entry) => !entry.isValid || !entry.isStockSufficient,
+                )
+              }
             >
               {isSubmitting ? "Saving..." : "Create Purchase Return"}
             </Button>
@@ -716,7 +765,9 @@ export default function SalesForm() {
                 style={{ fontFamily: "monospace", fontSize: "12px" }}
               >
                 <div className="text-center mb-4">
-                  <div className="font-bold text-lg mb-2">PURCHASE RETURN BILL</div>
+                  <div className="font-bold text-lg mb-2">
+                    PURCHASE RETURN BILL
+                  </div>
                   <div>Company Name</div>
                   <div>Address Line 1</div>
                   <div>Address Line 2</div>
@@ -727,15 +778,18 @@ export default function SalesForm() {
                 </div>
 
                 <div className="mb-4">
-                  <div>Bill No: {selectedPurchaseReturnPrint.invoice || "N/A"}</div>
+                  <div>
+                    Bill No: {selectedPurchaseReturnPrint.invoice || "N/A"}
+                  </div>
                   <div>
                     Date:{" "}
                     {new Date(
-                      selectedPurchaseReturnPrint.createdAt
+                      selectedPurchaseReturnPrint.createdAt,
                     ).toLocaleDateString()}
                   </div>
                   <div>
-                    Customer: {selectedPurchaseReturnPrint.customerId.customerName}
+                    Customer:{" "}
+                    {selectedPurchaseReturnPrint.customerId.customerName}
                   </div>
                   <div>
                     Transport: {selectedPurchaseReturnPrint.modeOfTransport}
@@ -816,7 +870,7 @@ export default function SalesForm() {
                               {entry.godownId.godownName}
                             </td>
                           </tr>
-                        )
+                        ),
                       )}
                     </tbody>
                   </table>
@@ -944,12 +998,16 @@ export default function SalesForm() {
               <div>Bill No: {selectedPurchaseReturnPrint.invoice || "N/A"}</div>
               <div>
                 Date:{" "}
-                {new Date(selectedPurchaseReturnPrint.createdAt).toLocaleDateString()}
+                {new Date(
+                  selectedPurchaseReturnPrint.createdAt,
+                ).toLocaleDateString()}
               </div>
               <div>
                 Customer: {selectedPurchaseReturnPrint.customerId.customerName}
               </div>
-              <div>Transport: {selectedPurchaseReturnPrint.modeOfTransport}</div>
+              <div>
+                Transport: {selectedPurchaseReturnPrint.modeOfTransport}
+              </div>
               <div>------------------------------------------</div>
             </div>
 
@@ -962,19 +1020,23 @@ export default function SalesForm() {
                 </tr>
               </thead>
               <tbody>
-                {selectedPurchaseReturnPrint.stockEntries.map((entry, index) => (
-                  <tr key={index}>
-                    <td>{entry.productId.productName}</td>
-                    <td>{entry.quantity}</td>
-                    <td>{entry.godownId.godownName}</td>
-                  </tr>
-                ))}
+                {selectedPurchaseReturnPrint.stockEntries.map(
+                  (entry, index) => (
+                    <tr key={index}>
+                      <td>{entry.productId.productName}</td>
+                      <td>{entry.quantity}</td>
+                      <td>{entry.godownId.godownName}</td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
 
             <div className="bill-footer">
               <div>------------------------------------------</div>
-              <div>Total Items: {selectedPurchaseReturnPrint.totalQuantity}</div>
+              <div>
+                Total Items: {selectedPurchaseReturnPrint.totalQuantity}
+              </div>
               <div>------------------------------------------</div>
               <div>Thank you for your business!</div>
               {selectedPurchaseReturnPrint.remark && (

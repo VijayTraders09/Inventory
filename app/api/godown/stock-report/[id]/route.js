@@ -59,9 +59,9 @@ export async function GET(request, { params }) {
       stocks.forEach((stock, index) => {
         sheetData.push({
           'S.No': index + 1,
-          'Product Name': stock.productId.productName,
-          'Category': stock.categoryId.categoryName,
-          'Quantity': stock.quantity
+          'Product Name': stock.productId?.productName,
+          'Category': stock.categoryId?.categoryName,
+          'Quantity': stock?.quantity
         });
       });
     }

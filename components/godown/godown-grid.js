@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Building, Search, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Building, Search, Download, Package, X } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import Link from "next/link";
@@ -52,6 +52,20 @@ export default function GodownGrid() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
+  
+  // New states for stocks modal
+  const [isStocksModalOpen, setIsStocksModalOpen] = useState(false);
+  const [selectedGodownForStocks, setSelectedGodownForStocks] = useState(null);
+  const [stocks, setStocks] = useState([]);
+  const [stocksLoading, setStocksLoading] = useState(false);
+  const [stocksSearch, setStocksSearch] = useState("");
+  const [stocksPagination, setStocksPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0,
+  });
+  const [stocksCurrentPage, setStocksCurrentPage] = useState(1);
 
   // Fetch godowns
   const fetchGodowns = async () => {
@@ -81,10 +95,43 @@ export default function GodownGrid() {
     }
   };
 
+  // Fetch stocks for a specific godown
+  const fetchStocksForGodown = async (godownId, page = 1, search = "") => {
+    setStocksLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: stocksPagination.limit.toString(),
+        search,
+      });
+
+      const response = await axios.get(`/api/godown/get-stocks-by-godown/${godownId}/?${params}`);
+
+      if (response.data.success) {
+        setStocks(response.data.data);
+        setStocksPagination(response.data.pagination);
+      } else {
+        toast.error(response.data.error || "Failed to fetch stocks");
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          "An error occurred while fetching stocks"
+      );
+    } finally {
+      setStocksLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchGodowns();
   }, [currentPage, search]);
 
+  useEffect(() => {
+    if (selectedGodownForStocks) {
+      fetchStocksForGodown(selectedGodownForStocks._id, stocksCurrentPage, stocksSearch);
+    }
+  }, [stocksCurrentPage, stocksSearch]);
 
   // Export individual godown data
   const handleEdit = (godown) => {
@@ -100,14 +147,32 @@ export default function GodownGrid() {
     setIsDeleteOpen(true);
   };
 
+  const handleViewStocks = (godown) => {
+    setSelectedGodownForStocks(godown);
+    setStocksCurrentPage(1);
+    setStocksSearch("");
+    setIsStocksModalOpen(true);
+    fetchStocksForGodown(godown._id);
+  };
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleStocksPageChange = (page) => {
+    setStocksCurrentPage(page);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
     setSearch(localSearch);
     setCurrentPage(1);
+  };
+
+  const handleStocksSearch = (e) => {
+    e.preventDefault();
+    setStocksCurrentPage(1);
+    fetchStocksForGodown(selectedGodownForStocks._id, 1, stocksSearch);
   };
 
   const handleSubmit = async (e) => {
@@ -198,9 +263,18 @@ export default function GodownGrid() {
         sortable: false,
         filter: false,
         resizable: false,
-        width: 200,
+        width: 280,
         cellRenderer: (params) => (
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleViewStocks(params.data)}
+              disabled={loading}
+              title="View stocks in this godown"
+            >
+              <Package className="h-4 w-4" />
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -239,6 +313,39 @@ export default function GodownGrid() {
       },
     ],
     [loading, exportingIndividual]
+  );
+
+  const stocksColumnDefs = useMemo(
+    () => [
+      {
+        headerName: "Product Name",
+        field: "productName",
+        sortable: true,
+        filter: true,
+        resizable: true,
+        flex: 1,
+      },
+      {
+        headerName: "Category",
+        field: "categoryName",
+        sortable: true,
+        filter: true,
+        resizable: true,
+        width: 180,
+      },
+      {
+        headerName: "Quantity",
+        field: "quantity",
+        sortable: true,
+        filter: false,
+        resizable: true,
+        width: 120,
+        cellRenderer: (params) => (
+          <span className="font-medium">{params.value}</span>
+        ),
+      },
+    ],
+    []
   );
 
   return (
@@ -441,6 +548,94 @@ export default function GodownGrid() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Stocks Modal */}
+      <Dialog open={isStocksModalOpen} onOpenChange={setIsStocksModalOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex justify-between items-center">
+              <DialogTitle>
+                Stocks in {selectedGodownForStocks?.godownName}
+              </DialogTitle>
+              {/* <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsStocksModalOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button> */}
+            </div>
+          </DialogHeader>
+          
+          {/* Search Bar for Stocks */}
+          <form onSubmit={handleStocksSearch} className="flex gap-2 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search products..."
+                value={stocksSearch}
+                onChange={(e) => setStocksSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button type="submit" disabled={stocksLoading}>
+              Search
+            </Button>
+          </form>
+
+          {/* Stocks Table */}
+          <div className="mt-4">
+            <div
+              className="ag-theme-alpine"
+              style={{ height: "400px", width: "100%" }}
+            >
+              <AgGridReact
+                rowData={stocks}
+                columnDefs={stocksColumnDefs}
+                loading={stocksLoading}
+                pagination={false}
+                suppressPaginationPanel={true}
+                overlayLoadingTemplate={
+                  '<div class="ag-overlay-loading-center">Loading stocks...</div>'
+                }
+                overlayNoRowsTemplate={
+                  '<div class="ag-overlay-loading-center">No stocks found</div>'
+                }
+              />
+            </div>
+          </div>
+
+          {/* Pagination for Stocks */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-gray-600">
+              Showing {(stocksPagination.page - 1) * stocksPagination.limit + 1} to{" "}
+              {Math.min(stocksPagination.page * stocksPagination.limit, stocksPagination.total)} of{" "}
+              {stocksPagination.total} entries
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStocksPageChange(stocksPagination.page - 1)}
+                disabled={stocksPagination.page <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm">
+                Page {stocksPagination.page} of {stocksPagination.pages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStocksPageChange(stocksPagination.page + 1)}
+                disabled={stocksPagination.page >= stocksPagination.pages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
