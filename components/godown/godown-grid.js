@@ -282,7 +282,7 @@ export default function GodownGrid() {
               title="Export this godown's stock data"
             >
               <Link
-                href={`http://localhost:3000/api/godown/stock-report/${params.data._id}`}
+                href={`https://vijaytraders.vercel.app/api/godown/stock-report/${params.data._id}`}
               >
                 {exportingIndividual[params.data._id] ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -364,7 +364,7 @@ export default function GodownGrid() {
           >
             <Link
             className="flex gap-1 items-center"
-              href={`http://localhost:3000/api/godown/export-stocks`}
+              href={`https://vijaytraders.vercel.app/api/godown/export-stocks`}
             >
               {exporting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
