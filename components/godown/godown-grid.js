@@ -22,7 +22,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Building, Search, Download, Package, X } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Building,
+  Search,
+  Download,
+  Package,
+  X,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import Link from "next/link";
@@ -52,7 +61,7 @@ export default function GodownGrid() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
-  
+
   // New states for stocks modal
   const [isStocksModalOpen, setIsStocksModalOpen] = useState(false);
   const [selectedGodownForStocks, setSelectedGodownForStocks] = useState(null);
@@ -88,7 +97,7 @@ export default function GodownGrid() {
     } catch (error) {
       toast.error(
         error.response?.data?.error ||
-          "An error occurred while fetching godowns"
+          "An error occurred while fetching godowns",
       );
     } finally {
       setLoading(false);
@@ -105,7 +114,9 @@ export default function GodownGrid() {
         search,
       });
 
-      const response = await axios.get(`/api/godown/get-stocks-by-godown/${godownId}/?${params}`);
+      const response = await axios.get(
+        `/api/godown/get-stocks-by-godown/${godownId}/?${params}`,
+      );
 
       if (response.data.success) {
         setStocks(response.data.data);
@@ -116,7 +127,7 @@ export default function GodownGrid() {
     } catch (error) {
       toast.error(
         error.response?.data?.error ||
-          "An error occurred while fetching stocks"
+          "An error occurred while fetching stocks",
       );
     } finally {
       setStocksLoading(false);
@@ -129,7 +140,11 @@ export default function GodownGrid() {
 
   useEffect(() => {
     if (selectedGodownForStocks) {
-      fetchStocksForGodown(selectedGodownForStocks._id, stocksCurrentPage, stocksSearch);
+      fetchStocksForGodown(
+        selectedGodownForStocks._id,
+        stocksCurrentPage,
+        stocksSearch,
+      );
     }
   }, [stocksCurrentPage, stocksSearch]);
 
@@ -184,7 +199,7 @@ export default function GodownGrid() {
       if (selectedGodown) {
         response = await axios.put(
           `/api/godown/${selectedGodown._id}`,
-          formData
+          formData,
         );
       } else {
         response = await axios.post("/api/godown", formData);
@@ -195,7 +210,7 @@ export default function GodownGrid() {
           response.data.message ||
             (selectedGodown
               ? "Godown updated successfully"
-              : "Godown created successfully")
+              : "Godown created successfully"),
         );
         setIsFormOpen(false);
         setFormData({ godownName: "" });
@@ -282,7 +297,8 @@ export default function GodownGrid() {
               title="Export this godown's stock data"
             >
               <Link
-                href={`https://vijaytraders.vercel.app/api/godown/stock-report/${params.data._id}`}
+                target="_blank"
+                href={`http://localhost:3000//api/godown/stock-report/${params.data._id}`}
               >
                 {exportingIndividual[params.data._id] ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -312,7 +328,7 @@ export default function GodownGrid() {
         ),
       },
     ],
-    [loading, exportingIndividual]
+    [loading, exportingIndividual],
   );
 
   const stocksColumnDefs = useMemo(
@@ -345,7 +361,7 @@ export default function GodownGrid() {
         ),
       },
     ],
-    []
+    [],
   );
 
   return (
@@ -363,8 +379,8 @@ export default function GodownGrid() {
             disabled={loading || exporting}
           >
             <Link
-            className="flex gap-1 items-center"
-              href={`https://vijaytraders.vercel.app/api/godown/export-stocks`}
+              className="flex gap-1 items-center"
+              href={`http://localhost:3000//api/godown/export-stocks`}
             >
               {exporting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -519,8 +535,8 @@ export default function GodownGrid() {
                 {isSubmitting
                   ? "Saving..."
                   : selectedGodown
-                  ? "Update"
-                  : "Create"}
+                    ? "Update"
+                    : "Create"}
               </Button>
             </div>
           </form>
@@ -566,7 +582,7 @@ export default function GodownGrid() {
               </Button> */}
             </div>
           </DialogHeader>
-          
+
           {/* Search Bar for Stocks */}
           <form onSubmit={handleStocksSearch} className="flex gap-2 mt-4">
             <div className="relative flex-1">
@@ -608,15 +624,21 @@ export default function GodownGrid() {
           {/* Pagination for Stocks */}
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-gray-600">
-              Showing {(stocksPagination.page - 1) * stocksPagination.limit + 1} to{" "}
-              {Math.min(stocksPagination.page * stocksPagination.limit, stocksPagination.total)} of{" "}
-              {stocksPagination.total} entries
+              Showing {(stocksPagination.page - 1) * stocksPagination.limit + 1}{" "}
+              to{" "}
+              {Math.min(
+                stocksPagination.page * stocksPagination.limit,
+                stocksPagination.total,
+              )}{" "}
+              of {stocksPagination.total} entries
             </div>
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleStocksPageChange(stocksPagination.page - 1)}
+                onClick={() =>
+                  handleStocksPageChange(stocksPagination.page - 1)
+                }
                 disabled={stocksPagination.page <= 1}
               >
                 Previous
@@ -627,7 +649,9 @@ export default function GodownGrid() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleStocksPageChange(stocksPagination.page + 1)}
+                onClick={() =>
+                  handleStocksPageChange(stocksPagination.page + 1)
+                }
                 disabled={stocksPagination.page >= stocksPagination.pages}
               >
                 Next

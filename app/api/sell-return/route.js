@@ -16,16 +16,28 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
     
     let query = {};
-    if (search) {
-      query = { 
-        $or: [
-          { invoice: { $regex: search, $options: 'i' } },
-          { modeOfTransport: { $regex: search, $options: 'i' } },
-          { remark: { $regex: search, $options: 'i' } }
-        ]
-      };
-    }
-    
+        let customerIds = [];
+        
+        // If there's a search term, first find matching customers
+        if (search) {
+          const customers = await Customer.find({
+            customerName: { $regex: search, $options: 'i' }
+          }).select('_id');
+          
+          customerIds = customers.map(customer => customer._id);
+          
+          // Now create the query to search in both Sell fields and by customer ID
+          query = { 
+            $or: [
+              { invoice: { $regex: search, $options: 'i' } },
+              { modeOfTransport: { $regex: search, $options: 'i' } },
+              { remark: { $regex: search, $options: 'i' } },
+              // Include sells with matching customer IDs
+              ...(customerIds.length > 0 ? [{ customerId: { $in: customerIds } }] : [])
+            ]
+          };
+        }
+        
     const purchases = await SellReturn.find(query)
       .populate('customerId', 'customerName')
       .populate({

@@ -39,13 +39,6 @@ export async function GET(request, { params }) {
     // Create sheet data
     const sheetData = [];
     
-    // Add headers
-    sheetData.push({
-      'S.No': 'S.No',
-      'Product Name': 'Product Name',
-      'Category': 'Category',
-      'Quantity': 'Quantity'
-    });
     
     // Add products
     if (stocks.length === 0) {
@@ -60,7 +53,7 @@ export async function GET(request, { params }) {
         sheetData.push({
           'S.No': index + 1,
           'Product Name': stock.productId?.productName,
-          'Category': stock.categoryId?.categoryName,
+          'Category': stock.categoryId?.categoryName || 2,
           'Quantity': stock?.quantity
         });
       });

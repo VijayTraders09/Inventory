@@ -1249,7 +1249,7 @@ export default function PurchaseReturnGrid() {
                         {selectedSale.stockEntries.map((entry, index) => (
                           <tr key={index}>
                             <td className="px-4 py-2 text-sm">
-                              {entry.categoryId.categoryName || entry.categoryId}
+                              {entry.categoryId?.categoryName || entry.categoryId}
                             </td>
                             <td className="px-4 py-2 text-sm">
                               {entry.productId.productName || entry.productId}

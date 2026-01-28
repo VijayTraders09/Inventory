@@ -1,49 +1,63 @@
-import { NextResponse } from 'next/server';
-import connectDB from '../../../lib/db';
-import Purchase from '../../../models/purchase';
-import Stock from '../../../models/stock';
-import Product from '../../../models/product';
-import Customer from '../../../models/customer';
-import Category from '../../../models/category';
-import Godown from '../../../models/godown';
+import { NextResponse } from "next/server";
+import connectDB from "../../../lib/db";
+import Purchase from "../../../models/purchase";
+import Stock from "../../../models/stock";
+import Product from "../../../models/product";
+import Customer from "../../../models/customer";
+import Category from "../../../models/category";
+import Godown from "../../../models/godown";
 
 export async function GET(request) {
   try {
     await connectDB();
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
 
     const skip = (page - 1) * limit;
-    
+
     let query = {};
+    let customerIds = [];
+
+    // If there's a search term, first find matching customers
     if (search) {
-      query = { 
+      const customers = await Customer.find({
+        customerName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      customerIds = customers.map((customer) => customer._id);
+
+      // Now create the query to search in both Sell fields and by customer ID
+      query = {
         $or: [
-          { invoice: { $regex: search, $options: 'i' } },
-          { modeOfTransport: { $regex: search, $options: 'i' } },
-          { remark: { $regex: search, $options: 'i' } }
-        ]
+          { invoice: { $regex: search, $options: "i" } },
+          { modeOfTransport: { $regex: search, $options: "i" } },
+          { remark: { $regex: search, $options: "i" } },
+          // Include sells with matching customer IDs
+          ...(customerIds.length > 0
+            ? [{ customerId: { $in: customerIds } }]
+            : []),
+        ],
       };
     }
-    
+
     const purchases = await Purchase.find(query)
-      .populate('customerId', 'customerName')
+      .populate("customerId", "customerName")
       .populate({
-        path: 'stockEntries',
+        path: "stockEntries",
         populate: [
-          { path: 'categoryId', select: 'categoryName' },
-          { path: 'productId', select: 'productName' },
-          { path: 'godownId', select: 'godownName' }
-        ]
+          { path: "categoryId", select: "categoryName" },
+          { path: "productId", select: "productName" },
+          { path: "godownId", select: "godownName" },
+        ],
       })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    
+
     const total = await Purchase.countDocuments(query);
-    
+
     return NextResponse.json({
       success: true,
       data: purchases,
@@ -51,57 +65,66 @@ export async function GET(request) {
         total,
         page,
         limit,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
-    console.error('Error fetching purchases:', error);
-    return NextResponse.json({ 
-      success: false,
-      error: 'Failed to fetch purchases' 
-    }, { status: 500 });
+    console.error("Error fetching purchases:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch purchases",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request) {
   try {
     await connectDB();
-    const { 
-      customerId, 
-      invoice, 
-      modeOfTransport, 
-      remark, 
-      stockEntries 
-    } = await request.json();
-    
+    const { customerId, invoice, modeOfTransport, remark, stockEntries } =
+      await request.json();
+
     // Validate required fields
-    if (!customerId || !modeOfTransport || !stockEntries || stockEntries.length === 0) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Missing required fields' 
-      }, { status: 400 });
+    if (
+      !customerId ||
+      !modeOfTransport ||
+      !stockEntries ||
+      stockEntries.length === 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing required fields",
+        },
+        { status: 400 },
+      );
     }
-    
+
     // Create the purchase record first
     const purchase = new Purchase({
       customerId,
       invoice,
       modeOfTransport,
       remark,
-      totalQuantity: stockEntries.reduce((sum, entry) => sum + entry.quantity, 0)
+      totalQuantity: stockEntries.reduce(
+        (sum, entry) => sum + entry.quantity,
+        0,
+      ),
     });
-    
+
     await purchase.save();
-    
+
     // Create or update stock entries and update product quantities
     const purchaseStockEntries = [];
     for (const entry of stockEntries) {
       // Check if a stock entry already exists with the same productId and godownId
       const existingStock = await Stock.findOne({
         productId: entry.productId,
-        godownId: entry.godownId
+        godownId: entry.godownId,
       });
-      
+
       if (existingStock) {
         // Update existing stock quantity
         existingStock.quantity += entry.quantity;
@@ -113,54 +136,58 @@ export async function POST(request) {
           productId: entry.productId,
           godownId: entry.godownId,
           quantity: entry.quantity,
-          purchaseId: purchase._id
+          purchaseId: purchase._id,
         });
-        
+
         await stock.save();
       }
-      
+
       // Add to purchase stock entries
       purchaseStockEntries.push({
         productId: entry.productId,
         godownId: entry.godownId,
         categoryId: entry.categoryId,
-        quantity: entry.quantity
+        quantity: entry.quantity,
       });
-      
+
       // Update product quantity
-      await Product.findByIdAndUpdate(
-        entry.productId,
-        { $inc: { quantity: entry.quantity } }
-      );
+      await Product.findByIdAndUpdate(entry.productId, {
+        $inc: { quantity: entry.quantity },
+      });
     }
-    
+
     // Update purchase with stock entries
     purchase.stockEntries = purchaseStockEntries;
     await purchase.save();
-    
+
     // Populate the purchase data for the response
     const populatedPurchase = await Purchase.findById(purchase._id)
-      .populate('customerId', 'customerName')
+      .populate("customerId", "customerName")
       .populate({
-        path: 'stockEntries.productId',
-        select: 'productName'
+        path: "stockEntries.productId",
+        select: "productName",
       })
       .populate({
-        path: 'stockEntries.godownId',
-        select: 'godownName'
+        path: "stockEntries.godownId",
+        select: "godownName",
       });
-    
-    return NextResponse.json({
-      success: true,
-      data: populatedPurchase,
-      message: 'Purchase created successfully'
-    }, { status: 201 });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: populatedPurchase,
+        message: "Purchase created successfully",
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    console.error('Error creating purchase:', error);
-    return NextResponse.json({ 
-      success: false,
-      error: 'Failed to create purchase' 
-    }, { status: 500 });
+    console.error("Error creating purchase:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to create purchase",
+      },
+      { status: 500 },
+    );
   }
 }
-

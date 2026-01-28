@@ -45,9 +45,9 @@ export async function GET(request) {
       
       if (godownProductsMap[godownId]) {
         godownProductsMap[godownId].products.push({
-          productName: stock.productId.productName,
-          categoryName: stock.categoryId.categoryName,
-          quantity: stock.quantity
+          productName: stock.productId?.productName,
+          categoryName: stock.categoryId?.categoryName,
+          quantity: stock?.quantity
         });
       }
     });
@@ -71,9 +71,9 @@ export async function GET(request) {
         godown.products.forEach((product, index) => {
           sheetData.push({
             'S.No': index + 1,
-            'Product Name': product.productName,
-            'Category': product.categoryName,
-            'Quantity': product.quantity
+            'Product Name': product?.productName,
+            'Category': product?.categoryName,
+            'Quantity': product?.quantity
           });
         });
       }

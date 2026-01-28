@@ -1250,7 +1250,7 @@ export default function PurchaseGrid() {
                         {selectedPurchase.stockEntries.map((entry, index) => (
                           <tr key={index}>
                             <td className="px-4 py-2 text-sm">
-                              {entry.categoryId.categoryName}
+                              {entry.categoryId?.categoryName}
                             </td>
                             <td className="px-4 py-2 text-sm">
                               {entry.productId.productName}

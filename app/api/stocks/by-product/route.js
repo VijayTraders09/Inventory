@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "../../../../lib/db";
 import Purchase from "../../../../models/purchase";
 import Stock from "../../../../models/stock";
+import Godown from "../../../../models/godown";
 
 export async function GET(request) {
   try {

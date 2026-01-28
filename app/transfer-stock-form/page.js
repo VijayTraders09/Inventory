@@ -21,6 +21,7 @@ import {
   ArrowRightLeft,
   X,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -30,10 +31,12 @@ export default function StockTransferForm() {
   const [fromGodownId, setFromGodownId] = useState("");
   const [toGodownId, setToGodownId] = useState("");
   const [stocks, setStocks] = useState([]);
+  const [filteredStocks, setFilteredStocks] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [remark, setRemark] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchingStocks, setFetchingStocks] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch godowns on component mount
   useEffect(() => {
@@ -47,8 +50,43 @@ export default function StockTransferForm() {
     } else {
       setStocks([]);
       setSelectedItems([]);
+      setFilteredStocks([]);
+      setSearchTerm("");
     }
   }, [fromGodownId]);
+
+  // Filter stocks when search term changes
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredStocks(stocks);
+    } else {
+      const filtered = stocks.filter(stock => 
+        stock?.productId?.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stock?.categoryId?.categoryName?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredStocks(filtered);
+    }
+  }, [searchTerm, stocks]);
+
+  // Update selected items when filtered stocks change
+  useEffect(() => {
+    if (filteredStocks.length > 0) {
+      setSelectedItems(
+        filteredStocks.map(stock => {
+          // Check if this item was already selected
+          const existingItem = selectedItems.find(item => item.productId === stock?.productId?._id);
+          return {
+            productId: stock?.productId?._id,
+            categoryId: stock?.categoryId?._id,
+            productName: stock?.productId?.productName,
+            categoryName: stock?.categoryId?.categoryName,
+            availableQuantity: stock?.quantity,
+            transferQuantity: existingItem ? existingItem.transferQuantity : 0,
+          };
+        })
+      );
+    }
+  }, [filteredStocks]);
 
   const fetchGodowns = async () => {
     try {
@@ -67,19 +105,21 @@ export default function StockTransferForm() {
       const response = await axios.get(`/api/stocks/stock-transfer-by-godown?godownId=${godownId}`);
       if (response.data.success) {
         setStocks(response.data.data);
+        setFilteredStocks(response.data.data);
         // Initialize selected items with 0 quantity
         setSelectedItems(
           response.data.data.map(stock => ({
-            productId: stock.productId._id,
-            categoryId: stock.categoryId._id,
-            productName: stock.productId.productName,
-            categoryName: stock.categoryId.categoryName,
-            availableQuantity: stock.quantity,
+            productId: stock.productId?._id,
+            categoryId: stock.categoryId?._id,
+            productName: stock.productId?.productName,
+            categoryName: stock.categoryId?.categoryName,
+            availableQuantity: stock?.quantity,
             transferQuantity: 0,
           }))
         );
       }
     } catch (error) {
+      console.log(error)
       toast.error("Failed to fetch stocks");
     } finally {
       setFetchingStocks(false);
@@ -139,6 +179,8 @@ export default function StockTransferForm() {
         setToGodownId("");
         setStocks([]);
         setSelectedItems([]);
+        setFilteredStocks([]);
+        setSearchTerm("");
         setRemark("");
       } else {
         toast.error(response.data.error || "Failed to transfer stock");
@@ -223,14 +265,41 @@ export default function StockTransferForm() {
                 </Badge>
               </div>
               
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search by product name or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 text-lg p-3"
+                />
+                {searchTerm && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              
               {fetchingStocks ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
-              ) : stocks.length === 0 ? (
+              ) : filteredStocks.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                  <p>No stock found in this godown</p>
+                  <p>
+                    {searchTerm 
+                      ? "No stock found matching your search" 
+                      : "No stock found in this godown"}
+                  </p>
                 </div>
               ) : (
                 <div className="border rounded-lg overflow-hidden">
