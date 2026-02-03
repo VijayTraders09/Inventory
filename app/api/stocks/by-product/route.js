@@ -17,36 +17,39 @@ export async function GET(request) {
       }, { status: 400 });
     }
     
-    // Find all stocks for this product
+    // 1. Fetch all godowns from the database
+    const allGodowns = await Godown.find({}).sort({ godownName: 1 });
+
+    // 2. Find all stocks for this product
     const stocks = await Stock.find({ productId })
-      .populate({
-        path: 'purchaseId',
-        select: 'invoice createdAt'
-      })
       .populate({
         path: 'godownId',
         select: 'godownName'
-      })
-      .sort({ createdAt: -1 });
+      });
     
-    // Group stocks by godown
-    const godownsMap = {};
+    // 3. Create a map to quickly find total stock quantity for each godown
+    const stockQuantitiesByGodown = {};
     stocks.forEach(stock => {
       const godownId = stock.godownId._id.toString();
-      if (!godownsMap[godownId]) {
-        godownsMap[godownId] = {
-          godownId: stock.godownId,
-          godownName: stock.godownId.godownName,
-          totalQuantity: 0,
-          stocks: []
-        };
-      }
-      godownsMap[godownId].totalQuantity += stock.quantity;
+      stockQuantitiesByGodown[godownId] = (stockQuantitiesByGodown[godownId] || 0) + stock.quantity;
     });
     
-    // Convert to array and calculate overall total
-    const godownsArray = Object.values(godownsMap);
-    const overallTotal = stocks.reduce((sum, stock) => sum + stock.quantity, 0);
+    // 4. Build the final array by iterating through ALL godowns
+    const godownsArray = allGodowns.map(godown => {
+      const godownIdStr = godown._id.toString();
+      return {
+        godownId: godown._id,
+        godownName: godown.godownName,
+        totalQuantity: stockQuantitiesByGodown[godownIdStr] || 0,
+        stocks: [] 
+      };
+    });
+    
+    // 5. *** NEW: Sort the array by stock count in descending order ***
+    godownsArray.sort((a, b) => b.totalQuantity - a.totalQuantity);
+    
+    // 6. Calculate the overall total from the sorted array
+    const overallTotal = godownsArray.reduce((sum, godown) => sum + godown.totalQuantity, 0);
     
     return NextResponse.json({
       success: true,

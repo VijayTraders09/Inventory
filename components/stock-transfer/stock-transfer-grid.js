@@ -443,13 +443,13 @@ export default function StockTransferGrid() {
                       {selectedTransfer.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-4 py-2 text-sm">
-                            {item.productId.productName}
+                            {item?.productId?.productName}
                           </td>
                           <td className="px-4 py-2 text-sm">
-                            {item.categoryId.categoryName}
+                            {item?.categoryId?.categoryName}
                           </td>
                           <td className="px-4 py-2 text-sm">
-                            {item.quantity}
+                            {item?.quantity}
                           </td>
                         </tr>
                       ))}
