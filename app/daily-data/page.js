@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 
-const InventoryByCategory = ({ godownId ="694942adff01cba74c910fd5"}) => {
+const InventoryByCategory = ({ godownId ="694942adff01cba74c910fd6"}) => {
   const [data, setData] = useState({
     data: [],
     stocks: [],
@@ -413,19 +413,19 @@ const InventoryByCategory = ({ godownId ="694942adff01cba74c910fd5"}) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="bg-blue-200 p-6 rounded-lg border-4 border-blue-600">
               <p className="text-lg text-blue-800 font-bold">Total Products</p>
-              <p className="text-3xl font-bold text-blue-900">{data.summary.totalProducts}</p>
+              <p className="text-3xl font-bold text-blue-900">{data.summary?.totalProducts}</p>
             </div>
             <div className="bg-green-200 p-6 rounded-lg border-4 border-green-600">
               <p className="text-lg text-green-800 font-bold">Total Quantity</p>
-              <p className="text-3xl font-bold text-green-900">{data.summary.totalQuantity}</p>
+              <p className="text-3xl font-bold text-green-900">{data.summary?.totalQuantity}</p>
             </div>
             <div className="bg-purple-200 p-6 rounded-lg border-4 border-purple-600">
               <p className="text-lg text-purple-800 font-bold">Total Purchases</p>
-              <p className="text-3xl font-bold text-purple-900">{data.summary.totalPurchases}</p>
+              <p className="text-3xl font-bold text-purple-900">{data.summary?.totalPurchases}</p>
             </div>
             <div className="bg-orange-200 p-6 rounded-lg border-4 border-orange-600">
               <p className="text-lg text-orange-800 font-bold">Total Sales</p>
-              <p className="text-3xl font-bold text-orange-900">{data.summary.totalSales}</p>
+              <p className="text-3xl font-bold text-orange-900">{data.summary?.totalSales}</p>
             </div>
           </div>
         </div>
