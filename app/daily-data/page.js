@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx-js-style";
 
-const InventoryByCategory = ({ godownId = "694942adff01cba74c910fd6" }) => {
+const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
   const [data, setData] = useState({
     data: [],
     stocks: [],
