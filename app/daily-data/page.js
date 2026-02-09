@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx-js-style";
 
-const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
+const InventoryByCategory = ({ godownId }) => {
   const [data, setData] = useState({
     data: [],
     stocks: [],
@@ -16,14 +16,45 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [godowns, setGodowns] = useState([]);
+  const [selectedGodownId, setSelectedGodownId] = useState(godownId);
+  const [selectedGodown, setSelectedGodown] = useState({});
+  const [godownsLoading, setGodownsLoading] = useState(true);
 
+  // Fetch godowns list
+  useEffect(() => {
+    const fetchGodowns = async () => {
+      try {
+        setGodownsLoading(true);
+        const response = await fetch("/api/godown");
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch godowns");
+        }
+        
+        const result = await response.json();
+        setGodowns(result.data || []);
+      } catch (err) {
+        console.error("Error fetching godowns:", err);
+        setError(err.message);
+      } finally {
+        setGodownsLoading(false);
+      }
+    };
+
+    fetchGodowns();
+  }, []);
+
+  // Fetch inventory data for selected godown
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedGodownId) return;
+      
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/daily-data?godownId=${godownId}`);
+        const response = await fetch(`/api/daily-data?godownId=${selectedGodownId}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch inventory data");
@@ -38,10 +69,10 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
       }
     };
 
-    if (godownId) {
+    if (selectedGodownId) {
       fetchData();
     }
-  }, [godownId]);
+  }, [selectedGodownId]);
 
   // Group products by category
   const groupByCategory = () => {
@@ -150,7 +181,7 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
       // Add product rows with borders
       categoryData.products.forEach((product, index) => {
         const startValue =
-          product.currentQuantity - product.todayPurchases + product.todaySales;
+          product.currentQuantity - product.todayPurchases + product.todaySales + product.todayTransfersOut;
         const trValue = product.todayPurchases - product.todaySales;
 
         const rowData = [
@@ -159,7 +190,7 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
           startValue,
           product.todayPurchases,
           product.todaySales,
-          trValue,
+          product.todayTransfersOut,
           product.currentQuantity,
         ];
 
@@ -190,7 +221,7 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
             sum +
             (product.currentQuantity -
               product.todayPurchases +
-              product.todaySales),
+              product.todaySales+product.todayTransfersOut),
           0,
         ),
         categoryData.products.reduce(
@@ -202,7 +233,7 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
           0,
         ),
         categoryData.products.reduce(
-          (sum, product) => sum + (product.todayPurchases - product.todaySales),
+          (sum, product) => sum + product.todayTransfersOut,
           0,
         ),
         categoryData.products.reduce(
@@ -306,10 +337,16 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
     XLSX.utils.book_append_sheet(wb, ws, "Inventory Report");
 
     // Generate Excel file and download
-    XLSX.writeFile(wb, `Inventory_Report_${data.date}.xlsx`);
+    XLSX.writeFile(wb, `${selectedGodown.godownName}-Inventory_Report_${data.date}.xlsx`);
   };
 
-  if (loading) {
+  // Handle godown selection change
+  const handleGodownChange = (e) => {
+    setSelectedGodown(godowns.find(godown=>godown._id===e.target.value))
+    setSelectedGodownId(e.target.value);
+  };
+
+  if (godownsLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -317,22 +354,35 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div
-        className="bg-red-100 border-4 border-red-600 text-red-700 px-4 py-3 rounded relative"
-        role="alert"
-      >
-        <strong className="font-bold text-xl">Error:</strong>
-        <span className="block sm:inline text-lg"> {error}</span>
-      </div>
-    );
-  }
-
-  const groupedData = groupByCategory();
-
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* GODOWN SELECTION DROPDOWN */}
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden mb-6 border-2 border-blue-500">
+        <div className="bg-blue-700 text-white px-6 py-4">
+          <h1 className="text-xl font-bold">Select Godown</h1>
+        </div>
+        <div className="p-6">
+          <div className="w-full md:w-1/3">
+            <label htmlFor="godown-select" className="block text-sm font-medium text-gray-700 mb-2">
+              Godown
+            </label>
+            <select
+              id="godown-select"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={selectedGodownId}
+              onChange={handleGodownChange}
+            >
+              <option value="">Select a godown</option>
+              {godowns.map((godown) => (
+                <option key={godown._id} value={godown._id}>
+                  {godown.godownName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* MAIN HEADER WITH VERY VISIBLE STYLING */}
       <div className="bg-blue-900 shadow-2xl rounded-lg overflow-hidden mb-8 border-4 border-blue-700">
         <div className="bg-blue-800 text-white px-8 py-6 flex justify-between items-center">
@@ -360,184 +410,203 @@ const InventoryByCategory = ({ godownId = "694942adff01cba74c910fda" }) => {
         </div>
       </div>
 
-      {/* CATEGORY TABLES WITH VERY VISIBLE STYLING */}
-      {Object.entries(groupedData).map(([categoryName, categoryData]) => (
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
         <div
-          key={categoryData.categoryId}
-          className="bg-white shadow-2xl rounded-lg overflow-hidden mb-8 border-4 border-green-600"
+          className="bg-red-100 border-4 border-red-600 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
         >
-          {/* NEW: CATEGORY NAME HEADER AT TOP - HIGHLIGHTED AND CENTERED */}
-          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-6 shadow-lg">
-            <h2 className="text-3xl font-bold text-center text-yellow-300">
-              {categoryName}
-            </h2>
-          </div>
+          <strong className="font-bold text-xl">Error:</strong>
+          <span className="block sm:inline text-lg"> {error}</span>
+        </div>
+      ) : (
+        <>
+          {/* CATEGORY TABLES WITH VERY VISIBLE STYLING */}
+          {Object.entries(groupByCategory()).map(([categoryName, categoryData]) => (
+            <div
+              key={categoryData.categoryId}
+              className="bg-white shadow-2xl rounded-lg overflow-hidden mb-8 border-4 border-green-600"
+            >
+              {/* NEW: CATEGORY NAME HEADER AT TOP - HIGHLIGHTED AND CENTERED */}
+              <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-6 shadow-lg">
+                <h2 className="text-3xl font-bold text-center text-yellow-300">
+                  {categoryName}
+                </h2>
+              </div>
 
-          <div className="overflow-x-auto">
-            {/* TABLE WITH THICK BORDERS AND MATCHING HEADERS */}
-            <table className="min-w-full divide-y divide-gray-200 border-4 border-gray-800">
-              <thead className="bg-blue-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    S.NO
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    Product Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    START
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    IN (Purchase)
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    OUT (Sale)
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    TR
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
-                    END (Current Stock)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {categoryData.products.map((product, index) => {
-                  // Calculate START value: current quantity - purchases + sales
-                  const startValue =
-                    product.currentQuantity -
-                    product.todayPurchases +
-                    product.todaySales;
-                  // TR value is the difference between IN and OUT
-                  const trValue = product.todayPurchases - product.todaySales;
+              <div className="overflow-x-auto">
+                {/* TABLE WITH THICK BORDERS AND MATCHING HEADERS */}
+                <table className="min-w-full divide-y divide-gray-200 border-4 border-gray-800">
+                  <thead className="bg-blue-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        S.NO
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        Product Name
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        START
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        IN (Purchase)
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        OUT (Sale)
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        TR
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-800 uppercase tracking-wider border-4 border-gray-800">
+                        END (Current Stock)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {categoryData.products.map((product, index) => {
+                      // Calculate START value: current quantity - purchases + sales
+                      const startValue =
+                        product.currentQuantity -
+                        product.todayPurchases +
+                        product.todaySales+
+                        product.todayTransfersOut
+                      // TR value is the difference between IN and OUT
+                      const trValue = product.todayPurchases - product.todaySales;
 
-                  return (
-                    <tr
-                      key={product.productId}
-                      className={index % 2 === 0 ? "bg-white" : "bg-yellow-50"}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {index + 1}
+                      return (
+                        <tr
+                          key={product.productId}
+                          className={index % 2 === 0 ? "bg-white" : "bg-yellow-50"}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {product.productName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {startValue}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {product.todayPurchases}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {product.todaySales}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
+                            {product.todayTransfersOut}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-600">
+                            {product.currentQuantity}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-300">
+                    <tr>
+                      <td
+                        colSpan="2"
+                        className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800"
+                      >
+                        TOTAL
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {product.productName}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
+                        {categoryData.products.reduce(
+                          (sum, product) =>
+                            sum +
+                            (product.currentQuantity -
+                              product.todayPurchases +
+                              product.todaySales+
+                              product.todayTransfersOut
+                            ),
+                          0,
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {startValue}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
+                        {categoryData.products.reduce(
+                          (sum, product) => sum + product.todayPurchases,
+                          0,
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {product.todayPurchases}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
+                        {categoryData.products.reduce(
+                          (sum, product) => sum + product.todaySales,
+                          0,
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {product.todaySales}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
+                        {categoryData.products.reduce(
+                          (sum, product) =>
+                            sum + product.todayTransfersOut,
+                          0,
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-4 border-gray-600">
-                        {trValue}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-600">
-                        {product.currentQuantity}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
+                        {categoryData.products.reduce(
+                          (sum, product) => sum + product.currentQuantity,
+                          0,
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="bg-gray-300">
-                <tr>
-                  <td
-                    colSpan="2"
-                    className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800"
-                  >
-                    TOTAL
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
-                    {categoryData.products.reduce(
-                      (sum, product) =>
-                        sum +
-                        (product.currentQuantity -
-                          product.todayPurchases +
-                          product.todaySales),
-                      0,
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
-                    {categoryData.products.reduce(
-                      (sum, product) => sum + product.todayPurchases,
-                      0,
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
-                    {categoryData.products.reduce(
-                      (sum, product) => sum + product.todaySales,
-                      0,
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
-                    {categoryData.products.reduce(
-                      (sum, product) =>
-                        sum + (product.todayPurchases - product.todaySales),
-                      0,
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 border-4 border-gray-800">
-                    {categoryData.products.reduce(
-                      (sum, product) => sum + product.currentQuantity,
-                      0,
-                    )}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      ))}
-
-      {/* OVERALL SUMMARY WITH VERY VISIBLE STYLING */}
-      <div className="bg-white shadow-2xl rounded-lg overflow-hidden border-4 border-purple-700">
-        {/* NEW: CATEGORY NAME HEADER AT TOP - HIGHLIGHTED AND CENTERED */}
-        <div className="bg-gradient-to-r from-purple-700 to-purple-800 text-white px-8 py-6 shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-yellow-300">
-            Overall Summary
-          </h2>
-        </div>
-        {data?.summary?.totalProducts ? (
-          <div className="p-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-blue-200 p-6 rounded-lg border-4 border-blue-600">
-                <p className="text-lg text-blue-800 font-bold">
-                  Total Products
-                </p>
-                <p className="text-3xl font-bold text-blue-900">
-                  {data.summary?.totalProducts}
-                </p>
-              </div>
-              <div className="bg-green-200 p-6 rounded-lg border-4 border-green-600">
-                <p className="text-lg text-green-800 font-bold">
-                  Total Quantity
-                </p>
-                <p className="text-3xl font-bold text-green-900">
-                  {data.summary?.totalQuantity}
-                </p>
-              </div>
-              <div className="bg-purple-200 p-6 rounded-lg border-4 border-purple-600">
-                <p className="text-lg text-purple-800 font-bold">
-                  Total Purchases
-                </p>
-                <p className="text-3xl font-bold text-purple-900">
-                  {data.summary?.totalPurchases}
-                </p>
-              </div>
-              <div className="bg-orange-200 p-6 rounded-lg border-4 border-orange-600">
-                <p className="text-lg text-orange-800 font-bold">Total Sales</p>
-                <p className="text-3xl font-bold text-orange-900">
-                  {data.summary?.totalSales}
-                </p>
+                  </tfoot>
+                </table>
               </div>
             </div>
+          ))}
+
+          {/* OVERALL SUMMARY WITH VERY VISIBLE STYLING */}
+          <div className="bg-white shadow-2xl rounded-lg overflow-hidden border-4 border-purple-700">
+            {/* NEW: CATEGORY NAME HEADER AT TOP - HIGHLIGHTED AND CENTERED */}
+            <div className="bg-gradient-to-r from-purple-700 to-purple-800 text-white px-8 py-6 shadow-lg">
+              <h2 className="text-3xl font-bold text-center text-yellow-300">
+                Overall Summary
+              </h2>
+            </div>
+            {data?.summary?.totalProducts ? (
+              <div className="p-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="bg-blue-200 p-6 rounded-lg border-4 border-blue-600">
+                    <p className="text-lg text-blue-800 font-bold">
+                      Total Products
+                    </p>
+                    <p className="text-3xl font-bold text-blue-900">
+                      {data.summary?.totalProducts}
+                    </p>
+                  </div>
+                  <div className="bg-green-200 p-6 rounded-lg border-4 border-green-600">
+                    <p className="text-lg text-green-800 font-bold">
+                      Total Quantity
+                    </p>
+                    <p className="text-3xl font-bold text-green-900">
+                      {data.summary?.totalQuantity}
+                    </p>
+                  </div>
+                  <div className="bg-purple-200 p-6 rounded-lg border-4 border-purple-600">
+                    <p className="text-lg text-purple-800 font-bold">
+                      Total Purchases
+                    </p>
+                    <p className="text-3xl font-bold text-purple-900">
+                      {data.summary?.totalPurchases}
+                    </p>
+                  </div>
+                  <div className="bg-orange-200 p-6 rounded-lg border-4 border-orange-600">
+                    <p className="text-lg text-orange-800 font-bold">Total Sales</p>
+                    <p className="text-3xl font-bold text-orange-900">
+                      {data.summary?.totalSales}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              ""
+            )}
           </div>
-        ) : (
-          ""
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };

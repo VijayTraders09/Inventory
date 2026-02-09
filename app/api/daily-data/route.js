@@ -5,7 +5,10 @@ import Purchase from '../../../models/purchase';
 import Sell from '../../../models/sell';
 import Product from '../../../models/product';
 import Category from '../../../models/category';
+import PurchaseReturns from '../../../models/purchaseReturn';
+import SellReturns from '../../../models/sellReturn';
 import Godown from '../../../models/godown';
+import StockTransfer from '../../../models/stockTransfer'; // Add this import
 
 export async function GET(request) {
   try {
@@ -55,7 +58,9 @@ export async function GET(request) {
         currentQuantity: stock.quantity,
         test: stock.quantity,
         todayPurchases: 0,
-        todaySales: 0
+        todaySales: 0,
+        todayTransfersOut: 0, // Add this field for transfers out
+        todayTransfersIn: 0   // Add this field for transfers in
       });
     });
     
@@ -73,6 +78,23 @@ export async function GET(request) {
           const product = productMap.get(productId);
           product.todayPurchases += entry.quantity;
           product.test -= entry.quantity;
+        }
+      });
+    });
+
+    // Get today's purchaseReturns for these products in this godown
+    const purchaseReturns = await PurchaseReturns.find({
+      createdAt: { $gte: startOfDay, $lt: endOfDay },
+      'stockEntries.godownId': godownId
+    }).lean();
+    
+    // Aggregate purchase quantities by product
+    purchaseReturns.forEach(purchase => {
+      purchase.stockEntries.forEach(entry => {
+        const productId = entry.productId.toString();
+        if (productMap.has(productId)) {
+          const product = productMap.get(productId);
+          product.todayPurchases -= entry.quantity;
         }
       });
     });
@@ -94,10 +116,48 @@ export async function GET(request) {
         }
       });
     });
+
+    // Get today's sales for these products in this godown
+    const saleReturn = await SellReturns.find({
+      createdAt: { $gte: startOfDay, $lt: endOfDay },
+      'stockEntries.godownId': godownId
+    }).lean();
+    
+    // Aggregate sale quantities by product
+    saleReturn.forEach(sale => {
+      sale.stockEntries.forEach(entry => {
+        const productId = entry.productId.toString();
+        if (productMap.has(productId)) {
+          const product = productMap.get(productId);
+          product.todaySales -= entry.quantity;
+          product.test += entry.quantity;
+        }
+      });
+    });
+
+    // Get today's stock transfers OUT from this godown
+    const transfersOut = await StockTransfer.find({
+      createdAt: { $gte: startOfDay, $lt: endOfDay },
+      fromGodownId: godownId
+    }).lean();
+    
+    // Aggregate transfer out quantities by product
+    transfersOut.forEach(transfer => {
+      transfer.items.forEach(item => {
+        const productId = item.productId.toString();
+        if (productMap.has(productId)) {
+          const product = productMap.get(productId);
+          product.todayTransfersOut += item.quantity;
+          product.test -= item.quantity;
+        }
+      });
+    });
     
     // Convert the map to an array for the response
     const result = Array.from(productMap.values());
     
+    // Calculate total transfers
+    const totalTransfersOut = result.reduce((sum, product) => sum + product.todayTransfersOut, 0);    
     // Return the result
     return NextResponse.json({
       success: true,
@@ -109,7 +169,8 @@ export async function GET(request) {
         totalProducts: result.length,
         totalQuantity: result.reduce((sum, product) => sum + product.currentQuantity, 0),
         totalPurchases: result.reduce((sum, product) => sum + product.todayPurchases, 0),
-        totalSales: result.reduce((sum, product) => sum + product.todaySales, 0)
+        totalSales: result.reduce((sum, product) => sum + product.todaySales, 0),
+        totalTransfersOut, // Add total transfers out
       }
     });
     
