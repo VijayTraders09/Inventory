@@ -99,7 +99,7 @@ export default function ProductExchangeForm({
 
   const fetchProducts = async (catId) => {
     try {
-      const response = await axios.get(`/api/products?categoryId=${catId}`);
+      const response = await axios.get(`/api/products?categoryId=${catId}&limit=all`);
       setProducts(response.data.data);
     } catch (error) {
       toast.error("Failed to fetch products");

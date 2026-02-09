@@ -26,7 +26,7 @@ export async function GET(request) {
       .populate('categoryId', 'categoryName')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit=='all'?"":limit);
     
     const total = await Product.countDocuments(query);
     

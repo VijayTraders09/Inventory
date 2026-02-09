@@ -157,7 +157,7 @@ export default function ProductGrid() {
     setSearch(localSearch);
     setCurrentPage(1);
   };
-
+console.log(selectedProduct)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -175,7 +175,7 @@ export default function ProductGrid() {
           (selectedProduct ? 'Product updated successfully' : 'Product created successfully'));
         setIsFormOpen(false);
         setFormData({ productName: '', categoryId: categoryId || '' });
-        setSelectedProduct(null);
+        // setSelectedProduct(null);
         fetchProducts(); // Refresh products list
       } else {
         toast.error(response.data.error || 'Something went wrong');
