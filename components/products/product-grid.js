@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Package, Search, Box, Building, X, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Search, Box, Building, X, Eye, EyeOff, Lock } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
@@ -72,6 +72,14 @@ export default function ProductGrid() {
     godowns: []
   });
   const [stockLoading, setStockLoading] = useState(false);
+
+  // Password protection states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [pendingAction, setPendingAction] = useState(null); // 'edit' or 'delete'
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
+  const CORRECT_PASSWORD = "Vijay@1234";
 
   // Fetch products
   const fetchProducts = async () => {
@@ -134,18 +142,53 @@ export default function ProductGrid() {
     fetchCategories();
   }, [currentPage, search, categoryId]);
 
-  const handleEdit = (product) => {
-    setSelectedProduct(product);
-    setFormData({
-      productName: product.productName,
-      categoryId: product.categoryId._id,
-    });
-    setIsFormOpen(true);
+  // Password validation
+  const validatePassword = () => {
+    if (passwordInput === CORRECT_PASSWORD) {
+      setPasswordError("");
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+      setShowPassword(false); // Reset password visibility
+      
+      // Execute the pending action
+      if (pendingAction === 'edit' && selectedProduct) {
+        proceedWithEdit();
+      } else if (pendingAction === 'delete' && selectedProduct) {
+        proceedWithDelete();
+      }
+    } else {
+      setPasswordError("Incorrect password. Please try again.");
+    }
   };
 
+  // Handle edit with password protection
+  const handleEdit = (product) => {
+    setSelectedProduct(product);
+    setPendingAction('edit');
+    setIsPasswordDialogOpen(true);
+  };
+
+  // Proceed with edit after password validation
+  const proceedWithEdit = () => {
+    setFormData({
+      productName: selectedProduct.productName,
+      categoryId: selectedProduct.categoryId._id,
+    });
+    setIsFormOpen(true);
+    setPendingAction(null);
+  };
+
+  // Handle delete with password protection
   const handleDelete = (product) => {
     setSelectedProduct(product);
+    setPendingAction('delete');
+    setIsPasswordDialogOpen(true);
+  };
+
+  // Proceed with delete after password validation
+  const proceedWithDelete = () => {
     setIsDeleteOpen(true);
+    setPendingAction(null);
   };
 
   const handlePageChange = (page) => {
@@ -157,7 +200,7 @@ export default function ProductGrid() {
     setSearch(localSearch);
     setCurrentPage(1);
   };
-console.log(selectedProduct)
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -175,7 +218,6 @@ console.log(selectedProduct)
           (selectedProduct ? 'Product updated successfully' : 'Product created successfully'));
         setIsFormOpen(false);
         setFormData({ productName: '', categoryId: categoryId || '' });
-        // setSelectedProduct(null);
         fetchProducts(); // Refresh products list
       } else {
         toast.error(response.data.error || 'Something went wrong');
@@ -309,6 +351,7 @@ console.log(selectedProduct)
             onClick={() => handleEdit(params.data)}
             disabled={loading}
           >
+            <Lock className="h-4 w-4 mr-1" />
             <Edit className="h-4 w-4" />
           </Button>
           <Button
@@ -318,6 +361,7 @@ console.log(selectedProduct)
             className="text-red-600 hover:text-red-700"
             disabled={loading}
           >
+            <Lock className="h-4 w-4 mr-1" />
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -530,6 +574,79 @@ console.log(selectedProduct)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Password Protection Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Authentication Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Please enter the password to {pendingAction === 'edit' ? 'edit' : 'delete'} this product.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    setPasswordError("");
+                  }}
+                  placeholder="Enter password"
+                  className={`pr-10 ${passwordError ? "border-red-500" : ""}`}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      validatePassword();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  )}
+                </Button>
+              </div>
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsPasswordDialogOpen(false);
+                  setPasswordInput("");
+                  setPasswordError("");
+                  setShowPassword(false);
+                  setPendingAction(null);
+                  setSelectedProduct(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={validatePassword}>
+                Authenticate
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Stock Details Popup */}
       <Dialog open={isStockPopupOpen} onOpenChange={setIsStockPopupOpen}>

@@ -15,13 +15,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Edit,
   Trash2,
   Plus,
   ChevronLeft,
   ChevronRight,
   Eye,
+  EyeOff,
   Download,
+  Lock,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import CategoryForm from "./category-form";
@@ -46,6 +54,14 @@ export default function CategoryGrid() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Password protection states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [pendingAction, setPendingAction] = useState(null); // 'edit' or 'delete'
+  const [showPassword, setShowPassword] = useState(false);
+  const CORRECT_PASSWORD = "Vijay@1234";
 
   const fetchCategories = useCallback(
     async (page = 1, search = "", limit = 10) => {
@@ -85,14 +101,49 @@ export default function CategoryGrid() {
     refreshKey,
   ]);
 
-  const handleEdit = (category) => {
-    setSelectedCategory(category);
-    setIsFormOpen(true);
+  // Password validation
+  const validatePassword = () => {
+    if (passwordInput === CORRECT_PASSWORD) {
+      setPasswordError("");
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+      setShowPassword(false);
+      
+      // Execute the pending action
+      if (pendingAction === 'edit' && selectedCategory) {
+        proceedWithEdit();
+      } else if (pendingAction === 'delete' && selectedCategory) {
+        proceedWithDelete();
+      }
+    } else {
+      setPasswordError("Incorrect password. Please try again.");
+    }
   };
 
+  // Handle edit with password protection
+  const handleEdit = (category) => {
+    setSelectedCategory(category);
+    setPendingAction('edit');
+    setIsPasswordDialogOpen(true);
+  };
+
+  // Proceed with edit after password validation
+  const proceedWithEdit = () => {
+    setIsFormOpen(true);
+    setPendingAction(null);
+  };
+
+  // Handle delete with password protection
   const handleDelete = (category) => {
     setSelectedCategory(category);
+    setPendingAction('delete');
+    setIsPasswordDialogOpen(true);
+  };
+
+  // Proceed with delete after password validation
+  const proceedWithDelete = () => {
     setIsDeleteOpen(true);
+    setPendingAction(null);
   };
 
   const handlePageChange = (page) => {
@@ -215,14 +266,19 @@ export default function CategoryGrid() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleEdit(params.data)}
+                disabled={loading}
               >
+                <Lock className="h-4 w-4 mr-1" />
                 <Edit className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleDelete(params.data)}
+                className="text-red-600 hover:text-red-700"
+                disabled={loading}
               >
+                <Lock className="h-4 w-4 mr-1" />
                 <Trash2 className="h-4 w-4" />
               </Button>
               <ProductsButtonCell data={params.data} />
@@ -231,7 +287,7 @@ export default function CategoryGrid() {
         },
       },
     ],
-    []
+    [loading]
   );
 
   return (
@@ -339,6 +395,7 @@ export default function CategoryGrid() {
         </div>
       </div>
 
+      {/* Category Form Dialog */}
       {isFormOpen && (
         <CategoryForm
           category={selectedCategory}
@@ -348,6 +405,7 @@ export default function CategoryGrid() {
         />
       )}
 
+      {/* Category Delete Dialog */}
       {isDeleteOpen && (
         <CategoryDeleteDialog
           category={selectedCategory}
@@ -356,6 +414,79 @@ export default function CategoryGrid() {
           onSuccess={handleRefresh}
         />
       )}
+
+      {/* Password Protection Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Authentication Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Please enter the password to {pendingAction === 'edit' ? 'edit' : 'delete'} this category.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    setPasswordError("");
+                  }}
+                  placeholder="Enter password"
+                  className={`pr-10 ${passwordError ? "border-red-500" : ""}`}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      validatePassword();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  )}
+                </Button>
+              </div>
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsPasswordDialogOpen(false);
+                  setPasswordInput("");
+                  setPasswordError("");
+                  setShowPassword(false);
+                  setPendingAction(null);
+                  setSelectedCategory(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={validatePassword}>
+                Authenticate
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -20,6 +20,7 @@ const InventoryByCategory = ({ godownId }) => {
   const [selectedGodownId, setSelectedGodownId] = useState(godownId);
   const [selectedGodown, setSelectedGodown] = useState({});
   const [godownsLoading, setGodownsLoading] = useState(true);
+  const [exportingAll, setExportingAll] = useState(false);
 
   // Fetch godowns list
   useEffect(() => {
@@ -75,10 +76,10 @@ const InventoryByCategory = ({ godownId }) => {
   }, [selectedGodownId]);
 
   // Group products by category
-  const groupByCategory = () => {
+  const groupByCategory = (inventoryData) => {
     const grouped = {};
 
-    data.data.forEach((product) => {
+    inventoryData.data.forEach((product) => {
       const categoryName = product.categoryName;
 
       if (!grouped[categoryName]) {
@@ -94,11 +95,8 @@ const InventoryByCategory = ({ godownId }) => {
     return grouped;
   };
 
-  // Export to Excel function with explicit styling
-  const exportToExcel = () => {
-    const groupedData = groupByCategory();
-    const wb = XLSX.utils.book_new();
-
+  // Create a worksheet for a godown
+  const createGodownWorksheet = (godownData, godownName) => {
     // Create a new worksheet with styling
     const ws = XLSX.utils.aoa_to_sheet([]);
 
@@ -114,7 +112,7 @@ const InventoryByCategory = ({ godownId }) => {
     ];
 
     // Add title with styling
-    XLSX.utils.sheet_add_aoa(ws, [[`Inventory Report - ${data.date}`]], {
+    XLSX.utils.sheet_add_aoa(ws, [[`Inventory Report - ${godownName} - ${godownData.date}`]], {
       origin: "A1",
     });
     ws["A1"].s = {
@@ -129,6 +127,7 @@ const InventoryByCategory = ({ godownId }) => {
     let currentRow = 3; // Start after title and empty row
 
     // Process each category
+    const groupedData = groupByCategory(godownData);
     Object.entries(groupedData).forEach(([categoryName, categoryData]) => {
       // Add category name with styling
       XLSX.utils.sheet_add_aoa(ws, [[categoryName]], {
@@ -308,10 +307,10 @@ const InventoryByCategory = ({ godownId }) => {
     currentRow++;
 
     const summaryData = [
-      data.summary.totalProducts,
-      data.summary.totalQuantity,
-      data.summary.totalPurchases,
-      data.summary.totalSales,
+      godownData.summary.totalProducts,
+      godownData.summary.totalQuantity,
+      godownData.summary.totalPurchases,
+      godownData.summary.totalSales,
     ];
 
     XLSX.utils.sheet_add_aoa(ws, [summaryData], { origin: `A${currentRow}` });
@@ -333,6 +332,14 @@ const InventoryByCategory = ({ godownId }) => {
     const range = XLSX.utils.decode_range(ws["!ref"]);
     ws["!ref"] = XLSX.utils.encode_range(range.s, { r: currentRow - 1, c: 6 });
 
+    return ws;
+  };
+
+  // Export to Excel function with explicit styling
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const ws = createGodownWorksheet(data, selectedGodown.godownName);
+    
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, "Inventory Report");
 
@@ -340,9 +347,47 @@ const InventoryByCategory = ({ godownId }) => {
     XLSX.writeFile(wb, `${selectedGodown.godownName}-Inventory_Report_${data.date}.xlsx`);
   };
 
+  // Export all godowns to Excel - Updated to use the new API
+  const exportAllGodownsToExcel = async () => {
+    try {
+      setExportingAll(true);
+      
+      // Fetch all godowns data in a single API call
+      const response = await fetch("/api/daily-data");
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch all godowns data");
+      }
+      
+      const result = await response.json();
+      const wb = XLSX.utils.book_new();
+      
+      // Create a worksheet for each godown
+      Object.entries(result.data).forEach(([godownId, godownData]) => {
+        const ws = createGodownWorksheet(godownData, godownData.godownName);
+        
+        // Truncate sheet name if it's too long (Excel has a 31 character limit for sheet names)
+        const sheetName = godownData.godownName.length > 31 
+          ? godownData.godownName.substring(0, 31) 
+          : godownData.godownName;
+        
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+      
+      // Generate Excel file and download
+      XLSX.writeFile(wb, `All_Godowns_Inventory_Report_${result.date}.xlsx`);
+    } catch (err) {
+      console.error("Error exporting all godowns:", err);
+      setError("Failed to export all godowns data");
+    } finally {
+      setExportingAll(false);
+    }
+  };
+
   // Handle godown selection change
   const handleGodownChange = (e) => {
-    setSelectedGodown(godowns.find(godown=>godown._id===e.target.value))
+    const godown = godowns.find(g => g._id === e.target.value);
+    setSelectedGodown(godown || {});
     setSelectedGodownId(e.target.value);
   };
 
@@ -369,7 +414,7 @@ const InventoryByCategory = ({ godownId }) => {
             <select
               id="godown-select"
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={selectedGodownId}
+              value={selectedGodownId || ""}
               onChange={handleGodownChange}
             >
               <option value="">Select a godown</option>
@@ -389,24 +434,55 @@ const InventoryByCategory = ({ godownId }) => {
           <h1 className="text-2xl font-bold text-yellow-300">
             Inventory Report - {data.date}
           </h1>
-          <button
-            onClick={exportToExcel}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg flex items-center text-lg border-2 border-red-800"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 mr-2"
-              viewBox="0 0 20 20"
-              fill="currentColor"
+          <div className="flex space-x-4">
+            <button
+              onClick={exportAllGodownsToExcel}
+              disabled={exportingAll}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg flex items-center text-lg border-2 border-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <path
-                fillRule="evenodd"
-                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Export to Excel
-          </button>
+              {exportingAll ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 mr-2"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 100 4h2a2 2 0 100-4h-.5a1 1 0 000-2H8a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                  </svg>
+                  Export All Godowns
+                </>
+              )}
+            </button>
+            <button
+              onClick={exportToExcel}
+              disabled={!selectedGodownId}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg flex items-center text-lg border-2 border-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Export to Excel
+            </button>
+          </div>
         </div>
       </div>
 
@@ -425,7 +501,7 @@ const InventoryByCategory = ({ godownId }) => {
       ) : (
         <>
           {/* CATEGORY TABLES WITH VERY VISIBLE STYLING */}
-          {Object.entries(groupByCategory()).map(([categoryName, categoryData]) => (
+          {Object.entries(groupByCategory(data)).map(([categoryName, categoryData]) => (
             <div
               key={categoryData.categoryId}
               className="bg-white shadow-2xl rounded-lg overflow-hidden mb-8 border-4 border-green-600"
